@@ -26,11 +26,11 @@
 // As the name says, in principle the single channel gateway listens to one channel/frequency
 // and to one spreading factor only.
 // NOTE: The frequency is set in the loraModem.h file and is default 868.100000 MHz.
-#define _SPREADING SF9							// Send and receive on this Spreading Factor (only)
+#define _SPREADING SF7							// Send and receive on this Spreading Factor (only)
 
 // Single channel gateways if they behave strict should only use one frequency channel and
 // one spreading factor. However, the TTN backend replies on RX2 timeslot for spreading factors
-// SF9-SF12 and frequency 869.525 MHz. 
+// SF9-SF12 and frequency 869.525 MHz.
 // If the 1ch gateway is working for nodes that ONLY transmit and receive on the set
 // and agreed frequency and spreading factor. make sure to set STRICT to 1.
 // In this case, the frequency and spreading factor for downlink messages is adapted by this
@@ -44,9 +44,9 @@
 
 // Initial value of debug parameter. Can be hanged using the admin webserver
 // For operational use, set initial DEBUG vaulue 0
-#define DEBUG 1					
+#define DEBUG 1
 
-// Allows configuration through WifiManager AP setup. Must be 0 or 1					
+// Allows configuration through WifiManager AP setup. Must be 0 or 1
 #define WIFIMANAGER 1
 
 // Define the name of the accesspoint if the gateway is in accesspoint mode (is
@@ -58,15 +58,15 @@
 // after all, a gateway can be a mote to the system as well
 // Set its LoRa address and key below
 // See spec. para 4.3.2
-#define GATEWAYNODE 0	
+#define GATEWAYNODE 0
 
 // Define the correct radio type that you are using
-#define CFG_sx1276_radio		
+#define CFG_sx1276_radio
 //#define CFG_sx1272_radio
-					
+
 // Wifi definitions
 // WPA is an array with SSID and password records. Set WPA size to number of entries in array
-// When using the WiFiManager, we will overwrite the first entry with the 
+// When using the WiFiManager, we will overwrite the first entry with the
 // accesspoint we last connected to with WifiManager
 // NOTE: Structure needs at least one (empty) entry.
 //		So WPASIZE must be >= 1
@@ -103,7 +103,7 @@ char *wpa[WPASIZE][2] = {
 #define _ALT 0
 
 
-								
+
 // Definitions for the admin webserver
 #define A_SERVER 1				// Define local WebServer only if this define is set
 #define SERVERPORT 80			// local webserver port

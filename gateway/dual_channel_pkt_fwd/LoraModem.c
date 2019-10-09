@@ -53,7 +53,7 @@ long txDelay= 0000;
 //uint32_t  freq = 868800000;                                   // in Mhz! (868.8)
 //uint32_t  freq = 869525000;                                   // in Mhz! (869.525)
 uint32_t  freq = 433175000;                                     // Channel 0, 433.1 MHz
-uint32_t  freq_2 = 433475000;                                   // Channel 1, 433.3 MHz
+uint32_t  freq_2 = 433375000;                                   // Channel 1, 433.3 MHz
 // TTN defines an additional channel at 869.525Mhz using SF9 for class B. Not used
 
 int ssPin = 0xff;
