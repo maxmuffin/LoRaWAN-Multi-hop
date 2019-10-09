@@ -1,0 +1,39 @@
+{
+  "SX127x_conf":
+  {
+    "freq": 433175000,
+    "freq_2": 433375000,
+    "spread_factor": 7,
+    "pin_nss": 6,
+    "pin_dio0": 7, 
+    "pin_nss_2": 6,
+    "pin_dio0_2": 7,
+    "pin_rst": 0
+  },
+  "gateway_conf":
+  {
+    "ref_latitude": 44.505892,
+    "ref_longitude": 11.359527,
+    "ref_altitude": 10,
+
+    "name": "DC Gateway",
+    "email": "massimiliano.gualtieri@gmail.com",
+    "desc": "Dragino Dual Channel Gateway on RPI",
+
+    "interface": "wlan0",
+
+    "servers":
+    [
+      {
+        "address": "router.eu.staging.thethings.network",
+        "port": 1700,
+        "enabled": true
+      },
+      {
+        "address": "router.eu.thethings.network",
+        "port": 1700,
+        "enabled": false
+      }
+    ]
+  }
+}
