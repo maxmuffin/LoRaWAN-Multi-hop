@@ -5,7 +5,7 @@
     "spread_factor": 7,
     "pin_nss": 6,
     "pin_dio0": 7,
-    "pin_rst": 0
+    "pin_rst": 3
   },
   "gateway_conf":
   {
@@ -20,12 +20,12 @@
     "servers":
     [
       {
-        "address": "router.eu.staging.thethings.network",
+        "address": "router.eu.thethings.network",
         "port": 1700,
         "enabled": true
       },
       {
-        "address": "router.eu.thethings.network",
+        "address": "router.eu.staging.thethings.network",
         "port": 1700,
         "enabled": false
       }
