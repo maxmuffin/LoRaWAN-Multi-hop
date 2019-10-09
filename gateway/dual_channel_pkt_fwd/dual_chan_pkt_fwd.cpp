@@ -86,7 +86,7 @@
 #include <string>
 #include <vector>
 #include <pthread.h>
-#include <netdb.h>              // gai_strerror 
+#include <netdb.h>              // gai_strerror
 #include "LoraModem.h"		// include Lora stuff
 
 // Debug messages
@@ -153,7 +153,7 @@ uint32_t cp_nb_pull;
 //int NetworkLED    = 22;
 //int InternetLED   = 23;
 //int ActivityLED_0 = 21;
-//int ActivityLED_1 = 29; 
+//int ActivityLED_1 = 29;
 
 // Set location in global_conf.json
 float lat =  0.0;
@@ -312,8 +312,8 @@ void SetupLoRa(byte CE)
     printf("Reset=%s ", PinName(RST  , buff));
     printf("Led1=%s\n", PinName(Led1 , buff));
   }
-  
-  // check basic 
+
+  // check basic
   if (ssPin == 0xff || dio0 == 0xff) {
     Die("Bad pin configuration ssPin and dio0 need at least to be defined");
   }
@@ -339,7 +339,7 @@ void SetupLoRa(byte CE)
       sx1272 = false;
     } else {
       printf("Transceiver version 0x%02X\n", version);
-      Die("Unrecognized transceiver");
+      //Die("Unrecognized transceiver");
     }
   }
 
@@ -352,7 +352,7 @@ void SetupLoRa(byte CE)
     frf = ((uint64_t)freq << 19) / 32000000;
   } else {
     frf = ((uint64_t)freq_2 << 19) / 32000000;
-  }   
+  }
   WriteRegister(REG_FRF_MSB, (uint8_t)(frf >> 16), CE );
   WriteRegister(REG_FRF_MID, (uint8_t)(frf >> 8), CE );
   WriteRegister(REG_FRF_LSB, (uint8_t)(frf >> 0), CE );
@@ -546,7 +546,7 @@ int main()
   digitalWrite(RST, HIGH);
   delay(100);
   digitalWrite(RST, LOW);
-  delay(100);   
+  delay(100);
 initLoraModem(0);
 initLoraModem(1);
   //SetupLoRa(0);
@@ -580,7 +580,7 @@ initLoraModem(1);
   printf("Listening at SF%i on %.6lf Mhz.\n", sf,(double)freq/1000000);
   printf("Listening at SF%i on %.6lf Mhz.\n", sf,(double)freq_2/1000000);
   printf("-----------------------------------\n");
-  
+
   // Setup connectivity with the server
 
   int i;
@@ -813,7 +813,7 @@ void LoadConfiguration(string configurationFile)
           } else if (memberType.compare("ref_longitude") == 0) {
             lon = confIt->value.GetDouble();
           } else if (memberType.compare("ref_altitude") == 0) {
-            alt = confIt->value.GetUint(); 
+            alt = confIt->value.GetUint();
 
           } else if (memberType.compare("name") == 0 && confIt->value.IsString()) {
             string str = confIt->value.GetString();
@@ -888,28 +888,28 @@ void PrintConfiguration()
 void thread_down(void* pic) {
  //TODO
 
-	int i; // loop variables 
+	int i; // loop variables
 	int ic = (int) (long) pic;
 	//int lastTmst;
-	
+
 	/* configuration and metadata for an outbound packet */
 	//struct lgw_pkt_tx_s txpkt;
 	//bool sent_immediate = false; /* option to sent the packet immediately */
-	
+
 	/* local timekeeping variables */
 	struct timespec send_time; /* time of the pull request */
 	struct timespec recv_time; /* time of return from recv socket call */
-	
+
 	/* data buffers */
 	uint8_t buff_down[1000]; /* buffer to receive downstream packets */
 	uint8_t buff_req[12]; /* buffer to compose pull requests */
 	int msg_len;
-	
+
 	/* protocol variables */
 	uint8_t token_h; /* random token for acknowledgement matching */
 	uint8_t token_l; /* random token for acknowledgement matching */
 	bool req_ack = false; /* keep track of whether PULL_DATA was acknowledged or not */
-	
+
 	/* JSON parsing variables */
 	//JSON_Value *root_val = NULL;
 	//JSON_Object *txpk_obj = NULL;
@@ -917,13 +917,13 @@ void thread_down(void* pic) {
 	//const char *str; /* pointer to sub-strings in the JSON data */
 	//short x0, x1;
 	//short x2, x3, x4;
-	//double x5, x6; 
-	
+	//double x5, x6;
+
 	/* variables to send on UTC timestamp */
 	//struct tref local_ref; /* time reference used for UTC <-> timestamp conversion */
 	//struct tm utc_vector; /* for collecting the elements of the UTC time */
 	//struct timespec utc_tx; /* UTC time that needs to be converted to timestamp */
-	
+
 	/* auto-quit variable */
 	//uint32_t autoquit_cnt = 0; /* count the number of PULL_DATA sent since the latest PULL_ACK */
 
@@ -943,7 +943,7 @@ void thread_down(void* pic) {
 	        printf("ERROR: [down] setsockopt for server %s returned %s\n", servername, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	
+
 	/* pre-fill the pull request buffer with fixed fields */
 	buff_req[0] = PROTOCOL_VERSION;
 	buff_req[3] = PKT_PULL_DATA;
@@ -955,22 +955,22 @@ void thread_down(void* pic) {
  	buff_req[9] = (unsigned char)ifr.ifr_hwaddr.sa_data[3];
   	buff_req[10] = (unsigned char)ifr.ifr_hwaddr.sa_data[4];
   	buff_req[11] = (unsigned char)ifr.ifr_hwaddr.sa_data[5];
-	
+
 	while (!exit_sig && !quit_sig) {
-		
+
 		/* TODO: auto-quit if the threshold is crossed */
 		//if ((autoquit_threshold > 0) && (autoquit_cnt >= autoquit_threshold)) {
 		//	exit_sig = true;
 		//	printf("INFO: [down] for server %s the last %u PULL_DATA were not ACKed, exiting application\n", serv_addr[ic], autoquit_threshold);
 		//	break;
 		//}
-		
+
 		/* generate random token for request */
 		token_h = (uint8_t)rand(); /* random token */
 		token_l = (uint8_t)rand(); /* random token */
 		buff_req[1] = token_h;
 		buff_req[2] = token_l;
-		
+
 		/* send PULL request and record time */
 		send(sock_down[ic], (void *)buff_req, sizeof buff_req, 0);
 		if (debug >= 2) { printf("INFO: [up] for server %s PULL_REQ send \n", servername ); }
@@ -980,7 +980,7 @@ void thread_down(void* pic) {
 		//pthread_mutex_unlock(&mx_meas_dw);
 		req_ack = false;
 		//autoquit_cnt++;
-		
+
 		/* listen to packets and process them until a new PULL request must be sent */
 		recv_time = send_time;
 		while ((int)difftimespec(recv_time, send_time) < keepalive_time) {
@@ -988,13 +988,13 @@ void thread_down(void* pic) {
 			/* try to receive a datagram */
 			msg_len = recv(sock_down[ic], (void *)buff_down, (sizeof buff_down)-1, 0);
 			clock_gettime(CLOCK_MONOTONIC, &recv_time);
-			
+
 			/* if no network message was received, got back to listening sock_down socket */
 			if (msg_len == -1) {
 				//printf("WARNING: [down] recv returned %s\n", strerror(errno)); /* too verbose */
 				continue;
 			}
-			
+
 			/* if the datagram does not respect protocol, just ignore it */
 			if ((msg_len < 4) || (buff_down[0] != PROTOCOL_VERSION) || ((buff_down[3] != PKT_PULL_RESP) && (buff_down[3] != PKT_PULL_ACK))) {
 				//TODO Investigate why this message is logged only at shutdown, i.e. all messages produced here are collected and
@@ -1002,7 +1002,7 @@ void thread_down(void* pic) {
 				printf("WARNING: [down] ignoring invalid packet\n");
 				continue;
 			}
-			
+
 			/* if the datagram is an ACK, check token */
 			if (buff_down[3] == PKT_PULL_ACK) {
 				if ((buff_down[1] == token_h) && (buff_down[2] == token_l)) {
@@ -1021,7 +1021,7 @@ void thread_down(void* pic) {
 				}
 			//	continue;
 			}
-			
+
 			//TODO: This might generate to much logging data. The reporting should be reevaluated and an option -q should be added.
 			/* the datagram is a PULL_RESP */
 			buff_down[msg_len] = 0; /* add string terminator, just to be safe */
@@ -1037,7 +1037,7 @@ void thread_down(void* pic) {
 			uint16_t  token = buff_down[2]*256 + buff_down[1];
 			byte CE=0; // For now hardcode to 1st RFM; need to update and use the corresponding freq or random
 			struct timeval now;
-  
+
   			// now parse the message type from the server (if any)
   			switch (ident) {
 			case PKT_PUSH_DATA: // 0x00 UP
@@ -1070,14 +1070,14 @@ void thread_down(void* pic) {
 				if (sendPacket(data, sizeof(data)-4, CE) < 0) {
 				printf("Error sending packet\n");
 			}
-		
+
 			// Now respond with an PKT_PULL_ACK; 0x04 UP
 			buff_up[0]=buff_down[0];
 			buff_up[1]=buff_down[1];
 			buff_up[2]=buff_down[2];
 			buff_up[3]=PKT_PULL_ACK;
 			buff_up[4]=0;
-			
+
 			// Only send the PKT_PULL_ACK to the UDP socket that just sent the data!!!
 			//SendUdp((char*) buff_up, 4);
 			send(sock_down[ic], (void *)buff_req, sizeof buff_req, 0);
@@ -1085,12 +1085,12 @@ void thread_down(void* pic) {
 					gettimeofday(&now, NULL);
 					printf("PKT_PULL_ACK:: tmst=%i\n", (uint32_t)(now.tv_sec * 1000000 + now.tv_usec));
 				}
-			
+
 				if (debug >=1) {
 					//printf("PKT_PULL_RESP:: size %i", packetSize);
 					printf("PKT_PULL_RESP:: ");
 					printf(" From server %s.\n", servername);
-					//TODO: printf(", port TBD");	
+					//TODO: printf(", port TBD");
 					//printf(", data: TBD\n");
 					//data = buff_down + 4;
 					//data[packetSize] = 0;
@@ -1103,7 +1103,7 @@ void thread_down(void* pic) {
 				if (debug >= 2) {
 					printf("PKT_PULL_ACK:: size %i\n", packetSize);
 					printf(" From SERVER %s", servername);
-					printf(", port TBD");	
+					printf(", port TBD");
 				//TODO: printf(", data: ");
 				//for (int i=0; i<packetSize; i++) {
 				//	printf("%i", buff_down[i]);

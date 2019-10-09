@@ -1,14 +1,14 @@
 {
   "SX127x_conf":
   {
-    "freq": 433175000,
-    "freq_2": 433375000,
+    "freq": 433375000,
+    "freq_2": 433175000,
     "spread_factor": 7,
     "pin_nss": 6,
-    "pin_dio0": 7, 
+    "pin_dio0": 7,
     "pin_nss_2": 6,
     "pin_dio0_2": 7,
-    "pin_rst": 0
+    "pin_rst": 3 
   },
   "gateway_conf":
   {

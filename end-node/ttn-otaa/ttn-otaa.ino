@@ -58,13 +58,15 @@ static osjob_t sendjob;
 // cycle limitations).
 const unsigned TX_INTERVAL = 60;
 
-// Pin mapping for Dragino Shield v1.4
+// Pin mapping<br>
 const lmic_pinmap lmic_pins = {
-    .nss = 6,
-    .rxtx = LMIC_UNUSED_PIN,
-    .rst = 5,
-    .dio = {2, 3, 4},
+    .nss = 10,// Connected to pin D10
+    .rxtx = LMIC_UNUSED_PIN,// For placeholder only, Do not connected on RFM92/RFM95
+    .rst = 9,// Needed on RFM92/RFM95? (probably not)
+    .dio = {2, 6, 7},// Specify pin numbers for DIO0, 1, 2
+// connected to D2, D6, D7 
 };
+
 
 void onEvent (ev_t ev) {
     Serial.print(os_getTime());
