@@ -1,21 +1,20 @@
 {
   "SX127x_conf":
   {
-    "freq": 868100000,
+    "freq": 433175000,
     "spread_factor": 7,
-    "pin_nss": 8,
-    "pin_dio0": 6,
-    "pin_rst": 3,
-    "pin_led1":4
+    "pin_nss": 6,
+    "pin_dio0": 7,
+    "pin_rst": 0
   },
   "gateway_conf":
   {
-    "ref_latitude": 0.0,
-    "ref_longitude": 0.0,
+    "ref_latitude": 44.505892,
+    "ref_longitude": 11.359527,
     "ref_altitude": 10,
 
     "name": "SC Gateway",
-    "email": "contact@whatever.com",
+    "email": "massimiliano.gualtieri@gmail.com",
     "desc": "Dragino Single Channel Gateway on RPI",
 
     "servers":
@@ -33,4 +32,3 @@
     ]
   }
 }
-

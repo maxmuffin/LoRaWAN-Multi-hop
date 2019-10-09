@@ -145,7 +145,7 @@ char description[64] ; /* used for free form description */
 // Overwritten by the ones set in global_conf.json
 SpreadingFactor_t sf = SF7;
 uint16_t bw = 125;
-uint32_t freq = 868100000; // in Mhz! (868.1)
+uint32_t freq = 433175000; // in Mhz! (433)
 
 
 // Servers
@@ -318,8 +318,8 @@ void SetupLoRa()
   printf("DIO0=%s " , PinName(dio0 , buff));
   printf("Reset=%s ", PinName(RST  , buff));
   printf("Led1=%s\n", PinName(Led1 , buff));
-  
-  // check basic 
+
+  // check basic
   if (ssPin == 0xff || dio0 == 0xff) {
     Die("Bad pin configuration ssPin and dio0 need at least to be defined");
   }
@@ -567,12 +567,12 @@ bool Receivepacket()
       /* process some of the configuration variables */
       //net_mac_h = htonl((uint32_t)(0xFFFFFFFF & (lgwm>>32)));
       //net_mac_l = htonl((uint32_t)(0xFFFFFFFF &  lgwm  ));
-      //*(uint32_t *)(buff_up + 4) = net_mac_h; 
+      //*(uint32_t *)(buff_up + 4) = net_mac_h;
       //*(uint32_t *)(buff_up + 8) = net_mac_l;
 
       buff_up[4] = (uint8_t)ifr.ifr_hwaddr.sa_data[0];
       buff_up[5] = (uint8_t)ifr.ifr_hwaddr.sa_data[1];
-      buff_up[6] = (uint8_t)ifr.ifr_hwaddr.sa_data[2]; 
+      buff_up[6] = (uint8_t)ifr.ifr_hwaddr.sa_data[2];
       buff_up[7] = 0xFF;
       buff_up[8] = 0xFF;
       buff_up[9] = (uint8_t)ifr.ifr_hwaddr.sa_data[3];
@@ -688,7 +688,7 @@ int main()
   si_other.sin_family = AF_INET;
 
   ifr.ifr_addr.sa_family = AF_INET;
-  strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);  // can we rely on eth0?
+  strncpy(ifr.ifr_name, "wlan0", IFNAMSIZ-1);  // can we rely on eth0?
   ioctl(s, SIOCGIFHWADDR, &ifr);
 
   // ID based on MAC Adddress of eth0
@@ -790,7 +790,7 @@ void LoadConfiguration(string configurationFile)
           } else if (memberType.compare("ref_longitude") == 0) {
             lon = confIt->value.GetDouble();
           } else if (memberType.compare("ref_altitude") == 0) {
-            alt = confIt->value.GetUint(); 
+            alt = confIt->value.GetUint();
 
           } else if (memberType.compare("name") == 0 && confIt->value.IsString()) {
             string str = confIt->value.GetString();
