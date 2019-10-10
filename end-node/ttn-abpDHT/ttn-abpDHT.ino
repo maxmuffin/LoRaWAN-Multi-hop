@@ -32,6 +32,16 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
+#define DHT_PIN 3
+
+// DHT11 or DHT22
+#define DHTTYPE DHT22
+
+// Initialize dht
+DHT dht(DHT_PIN, DHTTYPE);
 
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the early prototype TTN
@@ -53,7 +63,6 @@ void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
-static uint8_t mydata[] = "16";
 static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
@@ -68,6 +77,7 @@ const lmic_pinmap lmic_pins = {
     .dio = {2, 6, 7},// Specify pin numbers for DIO0, 1, 2
 // connected to D2, D6, D7 
 };
+
 
 void onEvent (ev_t ev) {
     Serial.print(os_getTime());
@@ -140,15 +150,30 @@ void do_send(osjob_t* j){
         Serial.println(F("OP_TXRXPEND, not sending"));
     } else {
         // Prepare upstream data transmission at the next possible time.
-        LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
+        
+        uint32_t humidity = dht.readHumidity(false) * 100;
+        uint32_t temperature = dht.readTemperature(false) * 100;
+
+        Serial.println("Humidity: " + String(humidity/100) + " %");
+        Serial.println("Temperature: " + String(temperature/100)+" *C");
+
+        byte payload[4];
+        payload[0] = highByte(humidity);
+        payload[1] = lowByte(humidity);
+        payload[2] = highByte(temperature);
+        payload[3] = lowByte(temperature);
+
+        LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
         Serial.println(F("Packet queued"));
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
 void setup() {
-    Serial.begin(115200);
+    Serial.begin(9600);
     Serial.println(F("Starting"));
+    
+    dht.begin();
 
     #ifdef VCC_ENABLE
     // For Pinoccio Scout boards
@@ -161,7 +186,6 @@ void setup() {
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
-
     // Set static session parameters. Instead of dynamically establishing a session
     // by joining the network, precomputed session parameters are be provided.
     #ifdef PROGMEM

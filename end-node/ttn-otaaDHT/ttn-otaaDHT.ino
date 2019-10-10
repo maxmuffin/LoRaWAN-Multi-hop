@@ -7,7 +7,7 @@
  * including, but not limited to, copying, modification and redistribution.
  * NO WARRANTY OF ANY KIND IS PROVIDED.
  *
- * This example sends a valid LoRaWAN packet with payload "Hello,
+ * This example sends a valid LoRaWAN packeLED_YELLOWt with payload "Hello,
  * world!", using frequency and encryption settings matching those of
  * the The Things Network.
  *
@@ -32,6 +32,16 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
+#define DHT_PIN 3
+
+// DHT11 or DHT22
+#define DHTTYPE DHT22
+
+// Initialize dht
+DHT dht(DHT_PIN, DHTTYPE);
 
 // This EUI must be in little-endian format, so least-significant-byte
 // first. When copying an EUI from ttnctl output, this means to reverse
@@ -51,85 +61,112 @@ void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
 static const u1_t PROGMEM APPKEY[16] = { 0xFE, 0x37, 0x71, 0x02, 0xEB, 0x50, 0x84, 0x69, 0x56, 0xF7, 0x60, 0x9D, 0xD1, 0x72, 0x6B, 0x35 };
 void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 
-static uint8_t mydata[] = "Hello, world!";
 static osjob_t sendjob;
+
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
 const unsigned TX_INTERVAL = 10;
 
-// Pin mapping<br>
+// Pin mapping
+// Pin mapping Dragino Shield V1.2 and V1.3
 const lmic_pinmap lmic_pins = {
-    .nss = 10,// Connected to pin D10
-    .rxtx = LMIC_UNUSED_PIN,// For placeholder only, Do not connected on RFM92/RFM95
-    .rst = 9,// Needed on RFM92/RFM95? (probably not)
-    .dio = {2, 6, 7},// Specify pin numbers for DIO0, 1, 2
-// connected to D2, D6, D7 
+    .nss = 10,
+    .rxtx = LMIC_UNUSED_PIN,
+    .rst = LMIC_UNUSED_PIN,
+    .dio = {2, 6, 7}
 };
 
+
+//-----------------------------
 
 void onEvent (ev_t ev) {
     Serial.print(os_getTime());
     Serial.print(": ");
     switch(ev) {
         case EV_SCAN_TIMEOUT:
+           
             Serial.println(F("EV_SCAN_TIMEOUT"));
             break;
-        case EV_BEACON_FOUND:
+
             Serial.println(F("EV_BEACON_FOUND"));
             break;
         case EV_BEACON_MISSED:
+
             Serial.println(F("EV_BEACON_MISSED"));
             break;
         case EV_BEACON_TRACKED:
+     
             Serial.println(F("EV_BEACON_TRACKED"));
             break;
         case EV_JOINING:
+      
             Serial.println(F("EV_JOINING"));
+                      
+            
             break;
         case EV_JOINED:
-            Serial.println(F("EV_JOINED"));
-
+      
+            Serial.println(F("EV_JOINED"));                    
             // Disable link check validation (automatically enabled
             // during join, but not supported by TTN at this time).
             LMIC_setLinkCheckMode(0);
             break;
-        case EV_RFU1:
+        case EV_RFU1:   
+            
             Serial.println(F("EV_RFU1"));
             break;
         case EV_JOIN_FAILED:
+        
             Serial.println(F("EV_JOIN_FAILED"));
             break;
         case EV_REJOIN_FAILED:
             Serial.println(F("EV_REJOIN_FAILED"));
             break;
             break;
-        case EV_TXCOMPLETE:
+        case EV_TXCOMPLETE:      
             Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
-            if (LMIC.txrxFlags & TXRX_ACK)
-              Serial.println(F("Received ack"));
+        
+            // Check if we have a downlink on either Rx1 or Rx2 windows.            
+            if (LMIC.txrxFlags) { 
+              if (TXRX_DNW1) {
+
+                Serial.println(F("Rx1 window"));
+              } else if (TXRX_DNW2) {
+                Serial.println(F("Rx2 window"));
+              } else if (TXRX_ACK) {
+                Serial.println(F("Received ack"));
+
+              }               
+            }  // if (LMIC.txrxFlags)
+                        
             if (LMIC.dataLen) {
               Serial.println(F("Received "));
               Serial.println(LMIC.dataLen);
               Serial.println(F(" bytes of payload"));
-            }
-            // Schedule next transmission
+                 
+            } 
+            // Schedule next transmission 
             os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
             break;
         case EV_LOST_TSYNC:
+                  
             Serial.println(F("EV_LOST_TSYNC"));
             break;
         case EV_RESET:
+               
             Serial.println(F("EV_RESET"));
             break;
         case EV_RXCOMPLETE:
+                  
             // data received in ping slot
             Serial.println(F("EV_RXCOMPLETE"));
             break;
         case EV_LINK_DEAD:
+       
             Serial.println(F("EV_LINK_DEAD"));
             break;
-        case EV_LINK_ALIVE:
+        case EV_LINK_ALIVE:  
             Serial.println(F("EV_LINK_ALIVE"));
             break;
          default:
@@ -143,8 +180,23 @@ void do_send(osjob_t* j){
     if (LMIC.opmode & OP_TXRXPEND) {
         Serial.println(F("OP_TXRXPEND, not sending"));
     } else {
+
+       
         // Prepare upstream data transmission at the next possible time.
-        LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
+        uint32_t humidity = dht.readHumidity(false) * 100;
+        uint32_t temperature = dht.readTemperature(false) * 100;
+
+        Serial.println("Humidity: " + String(humidity/100) + " %");
+        Serial.println("Temperature: " + String(temperature/100)+" *C");
+
+        byte payload[4];
+        payload[0] = highByte(humidity);
+        payload[1] = lowByte(humidity);
+        payload[2] = highByte(temperature);
+        payload[3] = lowByte(temperature);
+
+        LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
+        
         Serial.println(F("Packet queued"));
     }
     // Next TX is scheduled after TX_COMPLETE event.
@@ -154,6 +206,8 @@ void setup() {
     Serial.begin(9600);
     Serial.println(F("Starting"));
 
+    dht.begin();
+       
     #ifdef VCC_ENABLE
     // For Pinoccio Scout boards
     pinMode(VCC_ENABLE, OUTPUT);
@@ -165,14 +219,18 @@ void setup() {
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
-    
-    // Let LMIC offset for +/- 10% clock error
-    LMIC_setClockError (MAX_CLOCK_ERROR * 10/100);  
 
+    //------ Added ----------------
+    // Use with Arduino Pro Mini ATmega328P 3.3V 8 MHz
+    // Let LMIC compensate for +/- 1% clock error
+    LMIC_setClockError(MAX_CLOCK_ERROR * 1 / 100); 
+    //-----------------------------
+        
     // Start job (sending automatically starts OTAA too)
     do_send(&sendjob);
 }
 
 void loop() {
+  
     os_runloop_once();
 }
