@@ -38,7 +38,7 @@
 #define DHT_PIN 3
 
 // DHT11 or DHT22
-#define DHTTYPE DHT22
+#define DHTTYPE DHT11
 
 // Initialize dht
 DHT dht(DHT_PIN, DHTTYPE);
@@ -46,12 +46,21 @@ DHT dht(DHT_PIN, DHTTYPE);
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the early prototype TTN
 // network.
+
+// ************************ for THE THINGS NETWORK
+/*
 static const PROGMEM u1_t NWKSKEY[16] = { 0xDE, 0x8C, 0x1F, 0xBF, 0x1D, 0xD4, 0x69, 0x62, 0xAC, 0x90, 0xD6, 0x7C, 0x85, 0x33, 0xED, 0xDC };
 
 // LoRaWAN AppSKey, application session key
 // This is the default Semtech key, which is used by the early prototype TTN
 // network.
 static const u1_t PROGMEM APPSKEY[16] = { 0xD8, 0xE0, 0x73, 0xB8, 0x12, 0x32, 0xD6, 0x7F, 0xFE, 0xF3, 0x52, 0xAD, 0x25, 0x7F, 0x20, 0x11 };
+*/
+// ************************ for LORASERVER
+static const PROGMEM u1_t NWKSKEY[16] = { 0xD5, 0x1F, 0x5F, 0x06, 0x8C, 0x3E, 0x5F, 0x81, 0x67, 0xAD, 0xDC, 0x81, 0x2E, 0x7A, 0x83, 0x43 };
+static const u1_t PROGMEM APPSKEY[16] = { 0x4D, 0x3B, 0x6D, 0x4F, 0x27, 0xFB, 0x61, 0xA2, 0x6D, 0xAA, 0x3E, 0xFC, 0x0B, 0xFE, 0x87, 0xDE };
+
+
 
 // LoRaWAN end-device address (DevAddr)
 static const u4_t DEVADDR = 0x26011032 ; // <-- Change this address for every node!
@@ -75,7 +84,7 @@ const lmic_pinmap lmic_pins = {
     .rxtx = LMIC_UNUSED_PIN,// For placeholder only, Do not connected on RFM92/RFM95
     .rst = 9,// Needed on RFM92/RFM95? (probably not)
     .dio = {2, 6, 7},// Specify pin numbers for DIO0, 1, 2
-// connected to D2, D6, D7 
+// connected to D2, D6, D7
 };
 
 
@@ -115,6 +124,9 @@ void onEvent (ev_t ev) {
             if (LMIC.txrxFlags & TXRX_ACK)
               Serial.println(F("Received ack"));
             if (LMIC.dataLen) {
+
+              // This is message received --> work here for read another value from different node
+              // Read received data and retransmit
               Serial.println(F("Received "));
               Serial.println(LMIC.dataLen);
               Serial.println(F(" bytes of payload"));
@@ -150,7 +162,7 @@ void do_send(osjob_t* j){
         Serial.println(F("OP_TXRXPEND, not sending"));
     } else {
         // Prepare upstream data transmission at the next possible time.
-        
+
         uint32_t humidity = dht.readHumidity(false) * 100;
         uint32_t temperature = dht.readTemperature(false) * 100;
 
@@ -172,7 +184,7 @@ void do_send(osjob_t* j){
 void setup() {
     Serial.begin(9600);
     Serial.println(F("Starting"));
-    
+
     dht.begin();
 
     #ifdef VCC_ENABLE
@@ -244,7 +256,7 @@ void setup() {
 
     // Let LMIC offset for +/- 10% clock error
     LMIC_setClockError (MAX_CLOCK_ERROR * 10/100);
-    
+
     // Start job
     do_send(&sendjob);
 }

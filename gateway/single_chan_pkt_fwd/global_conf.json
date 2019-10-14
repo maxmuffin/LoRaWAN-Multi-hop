@@ -20,12 +20,14 @@
     "servers":
     [
       {
-        "address": "router.eu.thethings.network",
+        "_comment": "For TTN address: router.eu.thethings.network",
+        "address": "192.168.1.157",
         "port": 1700,
         "enabled": true
       },
       {
-        "address": "router.eu.staging.thethings.network",
+        "_comment": "For TTN address: router.eu.staging.thethings.network",
+        "address": "192.168.1.157",
         "port": 1700,
         "enabled": false
       }

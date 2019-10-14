@@ -26,7 +26,7 @@
 // As the name says, in principle the single channel gateway listens to one channel/frequency
 // and to one spreading factor only.
 // NOTE: The frequency is set in the loraModem.h file and is default 868.100000 MHz.
-#define _SPREADING SF7							// Send and receive on this Spreading Factor (only)
+#define _SPREADING SF9							// Send and receive on this Spreading Factor (only)
 
 // Single channel gateways if they behave strict should only use one frequency channel and
 // one spreading factor. However, the TTN backend replies on RX2 timeslot for spreading factors
