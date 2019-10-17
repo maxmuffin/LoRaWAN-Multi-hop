@@ -124,12 +124,15 @@ void onEvent (ev_t ev) {
             if (LMIC.txrxFlags & TXRX_ACK)
               Serial.println(F("Received ack"));
             if (LMIC.dataLen) {
-
-              // This is message received --> work here for read another value from different node
-              // Read received data and retransmit
               Serial.println(F("Received "));
               Serial.println(LMIC.dataLen);
               Serial.println(F(" bytes of payload"));
+              for (int i = 0; i < LMIC.dataLen; i++) {
+              if (LMIC.frame[LMIC.dataBeg + i] < 0x10) {
+              Serial.print(F("0"));
+              }
+              Serial.print(LMIC.frame[LMIC.dataBeg + i], HEX);
+              }
             }
             // Schedule next transmission
             os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
@@ -157,26 +160,47 @@ void onEvent (ev_t ev) {
 }
 
 void do_send(osjob_t* j){
+  // Show TX channel (channel numbers are local to LMIC)
+    Serial.print("Send, txCnhl: ");
+    Serial.println(LMIC.txChnl);
+
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND) {
         Serial.println(F("OP_TXRXPEND, not sending"));
     } else {
         // Prepare upstream data transmission at the next possible time.
 
-        uint32_t humidity = dht.readHumidity(false) * 100;
-        uint32_t temperature = dht.readTemperature(false) * 100;
+        float h = dht.readHumidity();
+        // Read temperature as Celsius (the default)
+        float t = dht.readTemperature();
 
-        Serial.println("Humidity: " + String(humidity/100) + " %");
-        Serial.println("Temperature: " + String(temperature/100)+" *C");
+        Serial.print("Humidity: ");
+        Serial.print(h);
+        Serial.print(" %\t");
+        Serial.print("Temperature: ");
+        Serial.print(t);
+        Serial.println("");
+
+        // Check if any reads failed and exit early (to try again).
+        if (isnan(h) || isnan(t)) {
+          Serial.println("Failed to read from DHT sensor!");
+          return;
+        }
+
+        // encode float as int
+        int16_t tempInt = round(t * 100);
+        int16_t humidInt = round(h * 100);
 
         byte payload[4];
-        payload[0] = highByte(humidity);
-        payload[1] = lowByte(humidity);
-        payload[2] = highByte(temperature);
-        payload[3] = lowByte(temperature);
+        payload[0] = highByte(tempInt);
+        payload[1] = lowByte(tempInt);
+        payload[2] = highByte(humidInt);
+        payload[3] = lowByte(humidInt);
 
         LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
         Serial.println(F("Packet queued"));
+        Serial.print(F("Sending packet on frequency:"));
+        Serial.println(LMIC.freq);
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
@@ -227,12 +251,13 @@ void setup() {
     LMIC_setupChannel(0, 433175000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
     LMIC_setupChannel(1, 433375000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
     LMIC_setupChannel(2, 433575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(3, 433775000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(4, 433975000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(5, 434175000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(6, 434375000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(7, 434575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(8, 434775000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
+    //LMIC_setupChannel(3, 433775000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    //LMIC_setupChannel(4, 433975000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    //LMIC_setupChannel(5, 434175000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    //LMIC_setupChannel(6, 434375000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    //LMIC_setupChannel(7, 434575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+    //LMIC_setupChannel(8, 434775000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
+    
     // TTN defines an additional channel at 869.525Mhz using SF9 for class B
     // devices' ping slots. LMIC does not have an easy way to define set this
     // frequency and support for class B is spotty and untested, so this
@@ -245,6 +270,9 @@ void setup() {
     LMIC_selectSubBand(1);
     #endif
 
+    // Disable channels
+    LMIC_disableChannel(2);
+    LMIC_disableChannel(1);
     // Disable link check validation
     LMIC_setLinkCheckMode(0);
 
