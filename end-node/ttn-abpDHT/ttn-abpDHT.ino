@@ -76,7 +76,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 20;
+const unsigned TX_INTERVAL = 30;
 
 // Pin mapping<br>
 const lmic_pinmap lmic_pins = {
@@ -129,9 +129,12 @@ void onEvent (ev_t ev) {
               Serial.println(F(" bytes of payload"));
               for (int i = 0; i < LMIC.dataLen; i++) {
               if (LMIC.frame[LMIC.dataBeg + i] < 0x10) {
-              Serial.print(F("0"));
-              }
+                Serial.print(F("0"));
+                }
               Serial.print(LMIC.frame[LMIC.dataBeg + i], HEX);
+                //Serial.print("Data Received: ");
+               // Serial.print(LMIC.frame+LMIC.dataBeg, LMIC.dataLen);
+                Serial.println();
               }
             }
             // Schedule next transmission
@@ -257,7 +260,7 @@ void setup() {
     //LMIC_setupChannel(6, 434375000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
     //LMIC_setupChannel(7, 434575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
     //LMIC_setupChannel(8, 434775000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
-    
+
     // TTN defines an additional channel at 869.525Mhz using SF9 for class B
     // devices' ping slots. LMIC does not have an easy way to define set this
     // frequency and support for class B is spotty and untested, so this
@@ -271,8 +274,8 @@ void setup() {
     #endif
 
     // Disable channels
-    //LMIC_disableChannel(2);
-    //LMIC_disableChannel(1);
+    LMIC_disableChannel(2);
+    LMIC_disableChannel(1);
     // Disable link check validation
     LMIC_setLinkCheckMode(0);
 
