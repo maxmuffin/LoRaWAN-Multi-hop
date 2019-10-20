@@ -1,20 +1,29 @@
+/*
+  LoRaWAN packet forwarder example :
+  Support Devices: LG01 Single Channel LoRa Gateway
+  LG01 test with firmware version v4.3.2
+  Example sketch showing how to get LoRaWAN packets from LoRaWAN node and forward it to LoRaWAN Server
+  It is designed to work with
+  modified 27 Jan 2018
+  by Dragino Tech <support@dragino.com>
+*/
+
 #include <FileIO.h>
 #include <Console.h>
 #include <Process.h>
 #include <SPI.h>
 #include <LoRa.h>
-const String Sketch_Ver = "single_pkt_fwd_v004";
+
+
+const String Sketch_Ver = "single_pkt_fwd_v003";
 
 static float freq, txfreq;
 static int SF, CR, txsf;
 static long BW, preLen;
 static long old_time = millis();
 static long new_time;
-static unsigned long newtime;
-const long sendpkt_interval = 15000;  // 15 seconds for replay.
-const long interval = 60000;          //1min for feeddog.
-unsigned long previousMillis = millis();
-unsigned long previousMillis_1 = millis();
+static unsigned long newtime1; 
+const long sendpkt_interval = 10000;  // 10 seconds for replay.
 
 void getRadioConf();//Get LoRa Radio Configure from LG01
 void setLoRaRadio();//Set LoRa Radio
@@ -22,36 +31,31 @@ void receivepacket();// receive packet
 void sendpacket(); //send join accept payload
 void emitpacket(); //send ddata down
 void writeVersion();
-void feeddog();
 
 static uint8_t packet[256];
 static uint8_t message[256];
 static uint8_t packet1[64];
 static int send_mode = 0; /* define mode default receive mode */
 
-//Set Debug = 1 to enable Output;
+//Set Debug = 1 to enable Console Output;
 const int debug = 1;
-int iuu = 0;
+
 static int packetSize;
+
 static char dwdata[32] = {'\0'};  // for data down payload
 
-/* ***************************
- *  
- *  Mode 0 = receive packet
- *  Mode 1 = prepare packet for send
- *  Mode 2 = send packet
- *  
-**************************** */
 
-void setup(){
-      // Setup Bridge
+void setup() {
+    // delay(5000);
+    // Setup Bridge
     Serial.begin(9600);
 
     // Setup File IO
     //FileSystem.begin();
+
     if ( debug > 0 )
     {
-        //Console.begin();
+        //Serial.begin();
         //Print Current Version
         Serial.print(F("Sketch Version:"));
         Serial.println(Sketch_Ver);
@@ -85,12 +89,15 @@ void setup(){
 
     if (!LoRa.begin(freq))
         if ( debug > 0 ) Serial.println(F("init LoRa failed"));
+
     setLoRaRadio();// Set LoRa Radio to Semtech Chip
+
     delay(1000);
-    //mcu_boot();
+
 }
 
-void loop(){
+void loop() {
+
     if (!send_mode) {
         receivepacket();          /* received message and wait server downstream */
     } else if (send_mode == 1) {
@@ -98,24 +105,20 @@ void loop(){
     } else {
         emitpacket();
     }
+    //feeddog();
 
-    unsigned long currentMillis = millis();
-    if ((currentMillis - previousMillis ) >= interval){
-      previousMillis = currentMillis;
-        //feeddog();
-
-    }
 }
+
 
 //Get LoRa Radio Configure from LG01
 void getRadioConf() {
 
     char tmp[32];
-
+    
     Process p;    // Create a process
-
+    /*
     //Read frequency from uci ####################
-    /*int j = 0;
+    int j = 0;
     memset(tmp, 0, sizeof(tmp));
     p.begin("uci");
     p.addParameter("get");
@@ -125,9 +128,8 @@ void getRadioConf() {
         tmp[j] = p.read();
         j++;
     }
-    freq = atof(tmp);*/
+    //freq = atof(tmp);*/
     freq = 433175000;
-
     //Read txfre from uci ####################
     /*j = 0;
     memset(tmp, 0, sizeof(tmp));
@@ -154,9 +156,9 @@ void getRadioConf() {
         j++;
     }
 
-    SF = atoi(tmp) > 0 ? atoi(tmp) : 10;  //default SF10*/
+    //SF = atoi(tmp) > 0 ? atoi(tmp) : 10;  //default SF10*/
     SF = 7;
-
+    
     //Read tx Spread Factor ####################
     /*j = 0;
     memset(tmp, 0, sizeof(tmp));
@@ -169,9 +171,9 @@ void getRadioConf() {
         j++;
     }
 
-    txsf = atoi(tmp) > 0 ? atoi(tmp) : 9;  //Txsf default to sf9*/
+    //txsf = atoi(tmp) > 0 ? atoi(tmp) : 9;  //Txsf default to sf9*/
     txsf = 9;
-
+    
     //Read Coding Rate  ####################
     /*j = 0;
     memset(tmp, 0, sizeof(tmp));
@@ -183,11 +185,10 @@ void getRadioConf() {
         tmp[j] = p.read();
         j++;
     }
-    CR = atoi(tmp);*/
-    CR = 5;
-
+    //CR = atoi(tmp);*/
+    CR=5;
     //Read PreambleLength
-    /*j = 0;
+    /*int j = 0;
     memset(tmp, 0, sizeof(tmp));
     p.begin("uci");
     p.addParameter("get");
@@ -200,8 +201,8 @@ void getRadioConf() {
     preLen = atol(tmp);*/
 
     //Read BandWidth  #######################
-    /*
-    j = 0;
+
+    /*j = 0;
     memset(tmp, 0, sizeof(tmp));
     p.begin("uci");
     p.addParameter("get");
@@ -228,6 +229,7 @@ void getRadioConf() {
     BW = 125E3;
 }
 
+
 void setLoRaRadio() {
     LoRa.setFrequency(freq);
     LoRa.setSpreadingFactor(SF);
@@ -237,46 +239,37 @@ void setLoRaRadio() {
     //LoRa.setPreambleLength(preLen);
 }
 
-
 //Receiver LoRa packets and forward it
 void receivepacket() {
     // try to parse packet
     LoRa.setSpreadingFactor(SF);
     LoRa.receive(0);
 
-   unsigned long currentMillis_1 = millis();
-    if ((currentMillis_1 - previousMillis_1 ) >= sendpkt_interval ){
+    while (1) {  //loop for receive message from lora module
 
-     previousMillis_1 = currentMillis_1;
       packetSize = LoRa.parsePacket();
 
       if (packetSize) {   // Received a packet
           if ( debug > 0 ) {
               Serial.println();
-              Serial.print(F("Get Packet: "));
+              Serial.print(F("Get Packet:"));
               Serial.print(packetSize);
-              Serial.print(F(" Bytes  "));
-              Serial.print("RSSI: ");
-              Serial.print(LoRa.packetRssi());
-              Serial.print("  SNR: ");
-              Serial.print(LoRa.packetSnr());
-              Serial.print("  FreqErr: ");
-              Serial.println(LoRa.packetFrequencyError());
-              
+              Serial.println(F(" Bytes"));
           }
+
         // read packet
         int i = 0;
 
         memset(message, 0, sizeof(message)); /* make sure message is empty */
-        Serial.print(F("Uplink Message: "));
-        Serial.print(F("["));
+
         while (LoRa.available() && i < 256) {
             message[i] = LoRa.read();
-          
+
+
           if ( debug > 0 )  {
-            //Serial.print(F("["));
-            //Serial.print(i);
-            //Serial.print(F("]"));
+            Serial.print(F("["));
+            Serial.print(i);
+            Serial.print(F("]"));
             Serial.print(message[i], HEX);
             Serial.print(F(" "));
           }
@@ -284,10 +277,13 @@ void receivepacket() {
           i++;
 
         }    /* end of while lora.available */
-        Serial.print(F("]"));
-        if ( debug > 0 ) Serial.println("");
 
-        
+        if ( debug > 0 ) Serial.println("");
+        Serial.print("rssi=");
+        Serial.println(LoRa.packetRssi());
+        Serial.print("size=");
+        Serial.println(packetSize);
+
         
 
         /*cfgdata file will be save rssi and packetsize*/
@@ -296,14 +292,17 @@ void receivepacket() {
         cfgFile.println(LoRa.packetRssi());
         cfgFile.print("size=");
         cfgFile.println(packetSize);
-        cfgFile.close();*/
+        cfgFile.close();
 
-        /*File dataFile = FileSystem.open("/var/iot/data", FILE_WRITE);
+        File dataFile = FileSystem.open("/var/iot/data", FILE_WRITE);
         dataFile.write(message, i);
         dataFile.close();
         */
+        Serial.println("Change to receive ");
+        send_mode = 2;
         if ((int)message[0] == 0) {      /* Join Request */
           send_mode = 1;  /* change the mode */
+          Serial.println("");
           return;
         }
 
@@ -316,18 +315,16 @@ void receivepacket() {
           }
         }
         devaddr[i] = '\0';
-
+        
         memset(dwdata, 0, sizeof(dwdata));
-        snprintf(dwdata, sizeof(dwdata), "/var/iot/%s", devaddr);
+        //snprintf(dwdata, sizeof(dwdata), "/var/iot/%s", devaddr);
 
         if (debug > 0) {
           Serial.print(F("Devaddr:"));
-          Serial.println(devaddr);
-          //Serial.print(F("Dwdata:"));
-          //Serial.println(dwdata);
+          Serial.println(dwdata);
         }
         /*
-        int res = FileSystem.exists(dwdata);
+        int res = FileSystem.exists(dwdata);   
         if (res) {
           send_mode = 2;
           if (debug > 0) {
@@ -335,16 +332,12 @@ void receivepacket() {
             Console.println(F(" Exists"));
           }
         }*/
-
-        // skip to mode 2
         send_mode = 2;
-
         Serial.print(F("END A PACKET, Mode:"));
         Serial.println(send_mode, DEC);
         return; /* exit the receive loop after received data from the node */
       } /* end of if packetsize than 1 */
     } /* end of recive loop */
-
 }
 
 void sendpacket()
@@ -353,30 +346,26 @@ void sendpacket()
   int i = 0;
 
   old_time = millis();
+
   new_time = old_time;
 
   while (new_time - old_time < sendpkt_interval) { /* received window may be closed after 10 seconds */
 
     new_time = millis();
-
-    /*if (FileSystem.exists("/var/iot/dldata") == false) {
+/*
+    if (FileSystem.exists("/var/iot/dldata") == false) {
       delay(1000);
       continue;
     }
-    */
-    //File dlFile = FileSystem.open("/var/iot/dldata"); /* dldata file save the downstream data */
 
+    File dlFile = FileSystem.open("/var/iot/dldata"); /* dldata file save the downstream data */
+/*
     memset(packet, 0, sizeof(packet));
-    i = 0;/*
+    i = 0;
     while (dlFile.available() && i < 256) {
       packet[i] = dlFile.read();
       i++;
     }*/
-
-    while (i < round(packetSize/2)) {
-      packet[i] = message[i];
-      i++;
-    }
 
     //dlFile.close();
 
@@ -387,16 +376,14 @@ void sendpacket()
 
     if ( debug > 0 ) {
       int j;
-      Serial.print(F("Downlink Message: "));
-      Serial.print(F("["));
+      Serial.println(F("Downlink Message:"));
       for (j = 0; j < i; j++) {
-        //Serial.print(F("["));
-        //Serial.print(j);
-        //Serial.print(F("]"));
+        Serial.print(F("["));
+        Serial.print(j);
+        Serial.print(F("]"));
         Serial.print(packet[j], HEX);
         Serial.print(F(" "));
       }
-      Serial.print(F("]"));
       Serial.println();
     }
 
@@ -405,7 +392,7 @@ void sendpacket()
 
     while (new_time - old_time < sendpkt_interval - 2000) {   // 8 seconds for sending packet to node
       LoRa.beginPacket();
-      LoRa.write(packet,i);
+      LoRa.write(packet, i);
       LoRa.endPacket();
       delay(1);
       new_time = millis();
@@ -418,27 +405,30 @@ void sendpacket()
     while (new_time - old_time < sendpkt_interval + 2000) {   // 12 seconds for sending packet to node
 
       LoRa.beginPacket();
-      Serial.println(" INVIOOOOO");
       LoRa.write(packet, i);
       LoRa.endPacket();
+
       delay(1);
+
       new_time = millis();
     }
+
     LoRa.setFrequency(freq);
     LoRa.setSpreadingFactor(SF);    /* reset SF to receive message */
 
     if (debug > 0) Serial.println(F("[transmit] END"));
+
     break;
   }
-  /*
-  Process rm;
+
+  /*Process rm;
   rm.begin("rm");
   rm.addParameter("-rf");
   rm.addParameter("/var/iot/dldata");
-  rm.run();
-  */
-
+  rm.run();*/
+  
   send_mode = 0;
+
 }
 
 void emitpacket()
@@ -448,42 +438,32 @@ void emitpacket()
   //File dwFile = FileSystem.open(dwdata); /* dldata file save the downstream data */
 
   memset(packet, 0, sizeof(packet));
-  /*
-  while (dwFile.available() && i < 256) {
+
+  /*while (dwFile.available() && i < 256) {
     packet[i] = dwFile.read();
     i++;
   }
 
   dwFile.close();*/
-  while (i < round(packetSize/2)) {
-    packet[i] = message[i];
-    i++;
-  }
 
-  if (i < 3)
+  /*if (i < 3)
     return;
-
+*/
   if ( debug > 0 ) {
-
-    Serial.print(F("Downlink Message: "));
-    Serial.print(F("["));
+    
+    Serial.println(F("Downlink Message:"));
     for (j = 0; j < i; j++) {
-      //Serial.print(F("["));
-      //Serial.print(j);
-      //Serial.print(F("]"));
+      Serial.print(F("["));
+      Serial.print(j);
+      Serial.print(F("]"));
       Serial.print(packet[j], HEX);
       Serial.print(F(" "));
     }
-    Serial.print(F("]"));
-    Serial.print("  ");
-    Serial.print(round(packetSize/2));
-    Serial.print(" bytes");
-    Serial.println();
+    Console.println();
   }
 
   for (j = 0; j < 5; j++) {     // send data down two times every frequency
     LoRa.beginPacket();
-    //Serial.println("Invio");
     LoRa.write(packet, i);
     LoRa.endPacket();
     delay(10);
@@ -504,47 +484,41 @@ void emitpacket()
   }
 
   if (debug > 0) Serial.println(F("[transmit] Data Down END"));
-
-  /*
-  Process rm;
+  
+ /* Process rm;
   rm.begin("rm");
   rm.addParameter("-rf");
   rm.addParameter(dwdata);
   rm.run();*/
-
+  
   send_mode = 0; //back to receive mode
 }
+/*
+void feeddog()
+{
+    int i = 0;
 
-void feeddog(){
-    int k = 0;
     memset(packet1, 0, sizeof(packet1));
 
     Process p;    // Create a process
     p.begin("date");
     p.addParameter("+%s");
     p.run();    
-    while (p.available() > 0 && k < 32) {
-        packet1[k] = p.read();
-        k++;
+    while (p.available() > 0 && i < 32) {
+        packet1[i] = p.read();
+        i++;
     }
-    newtime = atol(packet1);
+    newtime1 = atol(packet1);
 
-    //File dog = FileSystem.open("/var/iot/dog", FILE_WRITE);
-    //dog.println(newtime);
-    //dog.close();
-
-}
-
+    /*File dog = FileSystem.open("/var/iot/dog", FILE_WRITE);
+    dog.println(newtime1);
+    dog.close();
+}*/
+/*
 //Function to write sketch version number into Linux.
-void writeVersion(){
+void writeVersion()
+{
   File fw_version = FileSystem.open("/var/avr/fw_version", FILE_WRITE);
   fw_version.print(Sketch_Ver);
   fw_version.close();
-}
-
-void mcu_boot(){
-    Process r;
-    r.begin("logger");
-    r.addParameter("\"mcu_boot\"");
-    r.run();
-}
+}*/
