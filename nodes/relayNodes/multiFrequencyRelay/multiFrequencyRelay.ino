@@ -6,6 +6,11 @@ const String Sketch_Ver = "relayNode_v2";
 // GESTIRE DOWNLINK IN CASO DI GATEWAY DUAL CHANNEL
 // USARE GATEWAY SINGLE CHANNEL
 
+//array of frequencies valid for the application to change
+long int frequencies[3] = {433175000, 433375000, 433575000};
+//controls the current frequency index in the array
+int indexFreq = 0;
+
 static float freq, txfreq;
 static int SF, CR, txsf;
 static long BW, preLen;
@@ -41,6 +46,7 @@ static int send_mode = 0; /* define mode default receive mode */
 //Set Debug = 1 to enable Output;
 const int debug = 1;
 static int packetSize;
+int receivedCount = 0;
 static char dwdata[32] = {'\0'};  // for data down payload
 
 
@@ -50,6 +56,8 @@ void setup(){
     if ( debug > 0 ){
         Serial.print(F("Sketch Version:"));
         Serial.println(Sketch_Ver);
+        Serial.println(F("Start LoRaWAN Single Channel Gateway"));
+        Serial.println("");
       }
 
     //Get Radio configure
@@ -57,19 +65,10 @@ void setup(){
 
     if ( debug > 0 ){
 
-        Serial.println(F("Start LoRaWAN Single Channel Gateway"));
-        Serial.print(F("RX Frequency: "));
-        Serial.println(freq);
-        Serial.print(F("TX Frequency: "));
-        Serial.println(txfreq);
-        Serial.print(F("Spread Factor: SF"));
-        Serial.println(SF);
-        Serial.print(F("TX Spread Factor: SF"));
-        Serial.println(txsf);
-        Serial.print(F("Coding Rate: 4/"));
-        Serial.println(CR);
-        Serial.print(F("Bandwidth: "));
-        Serial.println(BW);
+        show_config();
+
+        
+
         //Serial.print(F("PreambleLength: "));
         //Serial.println(preLen);
     }
@@ -100,54 +99,80 @@ void loop(){
 //Get LoRa Radio Configure from LG01
 void getRadioConf() {
 
-    char tmp[32];
-
-
-    //frequency
-    freq = 433175000;
-
-    //txfre
-    txfreq = 433375000;
-
-    //Spread Factor
-    SF = 7;
-
-    //tx Spread Factor
-    txsf = 9;
-
-    //Coding Rate
-    CR = 5;
-
-    //Read PreambleLength
-    /*j = 0;
-    memset(tmp, 0, sizeof(tmp));
-    p.begin("uci");
-    p.addParameter("get");
-    p.addParameter("lorawan.radio.preamble");
-    p.run();    // Run the process and wait for its termination
-    while (p.available() > 0 && j < 5) {
-        tmp[j] = p.read();
-        j++;
-    }
-    preLen = atol(tmp);*/
-
-    //BandWidth
-    /*
-    switch (atoi(tmp)) {
-        case 0: BW = 7.8E3; break;
-        case 1: BW = 10.4E3; break;
-        case 2: BW = 15.6E3; break;
-        case 3: BW = 20.8E3; break;
-        case 4: BW = 31.25E3; break;
-        case 5: BW = 41.7E3; break;
-        case 6: BW = 62.5E3; break;
-        case 7: BW = 125E3; break;
-        case 8: BW = 250E3; break;
-        case 9: BW = 500E3; break;
-        default: BW = 125E3; break;
-    }*/
-    BW = 125E3;
+    read_freq();
+    read_txfreq();
+    read_SF();
+    read_txSF();
+    read_CR();
+    read_SBW();
 }
+void show_config(){
+  Serial.print(F("RX Frequency: "));
+  Serial.println(freq);
+  Serial.print(F("TX Frequency: "));
+  Serial.println(txfreq);
+  Serial.print(F("Spread Factor: SF"));
+  Serial.println(SF);
+  Serial.print(F("TX Spread Factor: SF"));
+  Serial.println(txsf);
+  Serial.print(F("Coding Rate: 4/"));
+  Serial.println(CR);
+  Serial.print(F("Bandwidth: "));
+  Serial.println(BW);
+}
+
+void checkFrequency()
+{
+  indexFreq=receivedCount%3;
+  getRadioConf();
+  show_config();
+}
+
+void read_freq() {
+  //freq=atol(fre1);
+  freq = frequencies[indexFreq];
+
+}
+void read_txfreq() {
+  if (indexFreq ==2){
+    txfreq = frequencies[0];
+  }else{
+    txfreq = frequencies[indexFreq+1];
+  }
+}
+void read_SF() {
+  SF = 7;
+}
+
+void read_txSF(){
+  txsf = 9;
+}
+void read_CR() {
+  // 4/CR
+  CR=5;
+
+}
+void read_SBW() {
+  int b1;
+
+  b1=7;
+  switch(b1)
+    {
+      case 0:BW=7.8E3;break;
+      case 1:BW=10.4E3;break;
+      case 2:BW=15.6E3;break;
+      case 3:BW=20.8E3;break;
+      case 4:BW=31.25E3;break;
+      case 5:BW=41.7E3;break;
+      case 6:BW=62.5E3;break;
+      case 7:BW=125E3;break;
+      case 8:BW=250E3;break;
+      case 9:BW=500E3;break;
+      default:break;
+    }
+}
+
+
 
 void setLoRaRadio() {
     LoRa.setFrequency(freq);
@@ -205,6 +230,9 @@ void receivepacket() {
           i++;
         }    /* end of while lora.available */
         Serial.print(F("]"));
+
+        // Increment received packet count
+        receivedCount++;
 
         if ( debug > 0 ) Serial.println("");
 
@@ -379,12 +407,19 @@ void emitpacket()
 
     delay(20);
 
+    checkFrequency();
+
     LoRa.setFrequency(freq);
     LoRa.setSpreadingFactor(SF);    /* reset SF to receive message */
     delay(500);
   }
 
-  if (debug > 0) Serial.println(F("[transmit] Data Down END"));
+  if (debug > 0){
+    Serial.print(F("[transmit] Data Down END"));
+    Serial.print("  Transmission n°: ");
+    Serial.println(receivedCount);
+  }
+
 
   send_mode = 0; //back to receive mode
 }

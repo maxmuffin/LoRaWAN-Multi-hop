@@ -76,7 +76,7 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 30;
+const unsigned TX_INTERVAL = 20;
 
 // Pin mapping<br>
 const lmic_pinmap lmic_pins = {
@@ -274,8 +274,8 @@ void setup() {
     #endif
 
     // Disable channels
-    LMIC_disableChannel(2);
-    LMIC_disableChannel(1);
+    //LMIC_disableChannel(2);
+    //LMIC_disableChannel(1);
     // Disable link check validation
     LMIC_setLinkCheckMode(0);
 
