@@ -34,7 +34,7 @@ void feeddog();
  *
  *     Mode 0 = receive packet
  *     Mode 1 = prepare packet for send // join request if is new device
- *     Mode 2 = send packet
+ *     Mode 2 = send/forward received packet
  *
 ************************************************ */
 
@@ -56,7 +56,7 @@ void setup(){
     if ( debug > 0 ){
         Serial.print(F("Sketch Version:"));
         Serial.println(Sketch_Ver);
-        Serial.println(F("Start LoRaWAN Single Channel Gateway"));
+        Serial.println(F("Start LoRaWAN Single Channel Forwarding Node"));
         Serial.println("");
       }
 
@@ -66,9 +66,6 @@ void setup(){
     if ( debug > 0 ){
 
         show_config();
-
-        
-
         //Serial.print(F("PreambleLength: "));
         //Serial.println(preLen);
     }
@@ -82,18 +79,17 @@ void setup(){
 void loop(){
     if (!send_mode) {
         receivepacket();          /* received message and wait server downstream */
-    } else if (send_mode == 1) {
+    } else if (send_mode == 1) { //JOIN MODE
         sendpacket();
     } else {
-        emitpacket();
+        emitpacket(); // SEND Packet
     }
-
-    unsigned long currentMillis = millis();
+    /*unsigned long currentMillis = millis();
     if ((currentMillis - previousMillis ) >= interval){
       previousMillis = currentMillis;
         //feeddog();
 
-    }
+    }*/
 }
 
 //Get LoRa Radio Configure from LG01
@@ -107,32 +103,35 @@ void getRadioConf() {
     read_SBW();
 }
 void show_config(){
+  if(receivedCount == 0){
+    Serial.println("Initial configuration. Listening on: ");
+  }
+  Serial.println("==========================================================");
   Serial.print(F("RX Frequency: "));
-  Serial.println(freq);
-  Serial.print(F("TX Frequency: "));
+  Serial.print(freq);
+  Serial.print(F("\tTX Frequency: "));
   Serial.println(txfreq);
-  Serial.print(F("Spread Factor: SF"));
-  Serial.println(SF);
-  Serial.print(F("TX Spread Factor: SF"));
+  Serial.print(F("Spreading Factor: SF"));
+  Serial.print(SF);
+  Serial.print(F("\t\tTX Spreading Factor: SF"));
   Serial.println(txsf);
   Serial.print(F("Coding Rate: 4/"));
-  Serial.println(CR);
-  Serial.print(F("Bandwidth: "));
+  Serial.print(CR);
+  Serial.print(F("\t\tBandwidth: "));
   Serial.println(BW);
+  Serial.println("==========================================================");
 }
 
 void checkFrequency()
 {
+  // Update frequencies index
   indexFreq=receivedCount%3;
   getRadioConf();
-  show_config();
+  //show_config();
 }
 
-void read_freq() {
-  //freq=atol(fre1);
-  freq = frequencies[indexFreq];
+void read_freq() { freq = frequencies[indexFreq]; }
 
-}
 void read_txfreq() {
   if (indexFreq ==2){
     txfreq = frequencies[0];
@@ -140,18 +139,15 @@ void read_txfreq() {
     txfreq = frequencies[indexFreq+1];
   }
 }
-void read_SF() {
-  SF = 7;
-}
 
-void read_txSF(){
-  txsf = 9;
-}
+void read_SF() { SF = 7; }
+
+void read_txSF(){ txsf = 9; }
 void read_CR() {
   // 4/CR
   CR=5;
-
 }
+
 void read_SBW() {
   int b1;
 
@@ -172,8 +168,6 @@ void read_SBW() {
     }
 }
 
-
-
 void setLoRaRadio() {
     LoRa.setFrequency(freq);
     LoRa.setSpreadingFactor(SF);
@@ -182,7 +176,6 @@ void setLoRaRadio() {
     LoRa.setSyncWord(0x34);
     //LoRa.setPreambleLength(preLen);
 }
-
 
 //Receiver LoRa packets and forward it
 void receivepacket() {
@@ -194,35 +187,32 @@ void receivepacket() {
     if ((currentMillis_1 - previousMillis_1 ) >= sendpkt_interval ){
 
      previousMillis_1 = currentMillis_1;
-      packetSize = LoRa.parsePacket();
+     packetSize = LoRa.parsePacket();
 
-      if (packetSize) {   // Received a packet
-          if ( debug > 0 ) {
-              Serial.println();
-              Serial.print(F("Get Packet: "));
-              Serial.print(packetSize);
-              Serial.print(F(" Bytes  "));
-              Serial.print("RSSI: ");
-              Serial.print(LoRa.packetRssi());
-              Serial.print("  SNR: ");
-              Serial.print(LoRa.packetSnr());
-              Serial.print(" dB  FreqErr: ");
-              Serial.println(LoRa.packetFrequencyError());
+     if (packetSize) {   // Received a packet
+       if ( debug > 0 ) {
+         Serial.println();
+         Serial.print(F("Get Packet: "));
+         Serial.print(packetSize);
+         Serial.print(F(" Bytes  "));
+         Serial.print("RSSI: ");
+         Serial.print(LoRa.packetRssi());
+         Serial.print("  SNR: ");
+         Serial.print(LoRa.packetSnr());
+         Serial.print(" dB  FreqErr: ");
+         Serial.println(LoRa.packetFrequencyError());
 
-          }
+      }
         // read packet
         int i = 0;
 
-        memset(message, 0, sizeof(message)); /* make sure message is empty */
+        //memset(message, 0, sizeof(message)); /* make sure message is empty */
         Serial.print(F("Uplink Message: "));
         Serial.print(F("["));
         while (LoRa.available() && i < 256) {
             message[i] = LoRa.read();
 
           if ( debug > 0 )  {
-            //Serial.print(F("["));
-            //Serial.print(i);
-            //Serial.print(F("]"));
             Serial.print(message[i], HEX);
             Serial.print(F(" "));
           }
@@ -243,7 +233,7 @@ void receivepacket() {
 
         /* process Data down */
         char devaddr[12] = {'\0'};
-        sprintf(devaddr, "%x%x%x%x", message[1], message[2], message[3], message[4]);
+        sprintf(devaddr, "%x%x%x%x", message[4], message[3], message[2], message[1]);
         if (strlen(devaddr) > 8) {
           for (i = 0; i < strlen(devaddr) - 2; i++) {
             devaddr[i] = devaddr[i + 2];
@@ -251,8 +241,8 @@ void receivepacket() {
         }
         devaddr[i] = '\0';
 
-        memset(dwdata, 0, sizeof(dwdata));
-        snprintf(dwdata, sizeof(dwdata), "/var/iot/%s", devaddr);
+        //memset(dwdata, 0, sizeof(dwdata));
+        //snprintf(dwdata, sizeof(dwdata), "/var/iot/%s", devaddr);
 
         if (debug > 0) {
           Serial.print(F("Devaddr:"));
@@ -273,11 +263,13 @@ void receivepacket() {
         // skip to mode 2
         send_mode = 2;
 
-        Serial.print(F("END A PACKET, Mode:"));
-        Serial.println(send_mode, DEC);
+        printChangedMode();
+        //Serial.print(F("Received Packet, skip to mode:"));
+        //if(send_mode)
+        //Serial.println(send_mode, DEC);
         return; /* exit the receive loop after received data from the node */
       } /* end of if packetsize than 1 */
-    } /* end of recive loop */
+    } /* end of receive loop */
 
 }
 
@@ -355,6 +347,7 @@ void sendpacket()
   }
 
   send_mode = 0;
+  printChangedMode();
 }
 
 void emitpacket()
@@ -386,8 +379,8 @@ void emitpacket()
     Serial.print(F("]"));
     Serial.print("  ");
     Serial.print(packetSize);
-    Serial.print(" bytes");
-    Serial.println();
+    Serial.println(" bytes");
+    Serial.println("");
   }
 
   for (j = 0; j < 1; j++) {     // send data down two times every frequency
@@ -418,10 +411,26 @@ void emitpacket()
     Serial.print(F("[transmit] Data Down END"));
     Serial.print("  Transmission n°: ");
     Serial.println(receivedCount);
+    Serial.println("");
   }
 
 
   send_mode = 0; //back to receive mode
+  printChangedMode();
+}
+
+void printChangedMode(){
+  if(send_mode == 2){
+      Serial.println(F("Received Packet, skip to mode: FORWARD PACKET"));
+  }else{
+    if(send_mode == 0){
+      Serial.println(F("Waiting for incoming packets using: "));
+      show_config();
+    }else{
+      Serial.println(F("Skipping to mode: JOIN REQUEST"));
+      }
+   }
+
 }
 
 void feeddog(){
