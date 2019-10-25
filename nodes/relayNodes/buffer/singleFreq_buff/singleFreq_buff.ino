@@ -1,15 +1,17 @@
 #include <Process.h>
 #include <SPI.h>
 #include <LoRa.h>
-const String Sketch_Ver = "relayNode_v2_test";
+const String Sketch_Ver = "relayNode_singleFreq_buffer";
+
+
+// Utilizza un buffer popolato da pacchetti già ricevuti per vedere
+// se sono già stati inoltrati
+
 
 // GESTIRE DOWNLINK IN CASO DI GATEWAY DUAL CHANNEL
 // USARE GATEWAY SINGLE CHANNEL
 
-//array of frequencies valid for the application to change
-long int frequencies[3] = {433175000, 433375000};
-//controls the current frequency index in the array
-int indexFreq = 0;
+int bufferSize = 3;
 
 static float freq, txfreq;
 static int SF, CR, txsf;
@@ -46,6 +48,14 @@ const int debug = 1;
 static int packetSize;
 int receivedCount = 0;
 
+int bufferMatrix[3][10] = {
+  {0,  0,  0, 0, 0, 0, 0, 0, 0, 0  },
+
+  {0,  0,  0, 0, 0, 0, 0, 0, 0, 0  },
+
+  {0,  0,  0, 0, 0, 0, 0, 0, 0, 0  }
+
+};
 
 void setup(){
     Serial.begin(9600);
@@ -113,22 +123,9 @@ void show_config(){
   Serial.println("----------------------------------------------------------");
 }
 
-void checkFrequency()
-{
-  // Update frequencies index
-  indexFreq=receivedCount%2;
-  getRadioConf();
-}
+void read_freq() { freq = 433175000; }
 
-void read_freq() { freq = frequencies[indexFreq]; }
-
-void read_txfreq() {
-  if (indexFreq ==1){
-    txfreq = frequencies[0];
-  }else{
-    txfreq = frequencies[indexFreq+1];
-  }
-}
+void read_txfreq() { txfreq = 433175000;}
 
 void read_SF() { SF = 7; }
 
@@ -249,20 +246,22 @@ void copyMessage(){
   int i = 0, j= 0;
 
   while (i <= 6) {
-    previous_packet[i] = packet[i];
+    bufferMatrix[receivedCount%bufferSize][i] = packet[i];
     i++;
   }
 
 }
 
 void showPreviousMessage(){
-  Serial.print(F("Previous Packet: "));
-  Serial.print(F("["));
-  for (int j = 0; j <=6; j++) {
-    Serial.print(previous_packet[j], HEX);
-    Serial.print(F(" "));
+  for (int i = 0; i<bufferSize; i++){
+    Serial.print(F("Previous Packet: "));
+    Serial.print(F("["));
+    for (int j = 0; j <=6; j++) {
+      Serial.print(bufferMatrix[i][j], HEX);
+      Serial.print(F(" "));
+    }
+    Serial.println(F("]"));
   }
-  Serial.println(F("]"));
 }
 
 void forwardPacket(){
@@ -299,7 +298,6 @@ void forwardPacket(){
         LoRa.endPacket();
 
         delay(20);
-        checkFrequency();
         delay(500);
 
         if (debug > 0){
@@ -316,32 +314,34 @@ void forwardPacket(){
 
     }
 
-
 }
 
 void checkPreviousPacket(){
 
-  int equal = 0;
+  int equal1 = 0, equal2 = 0, equal3 = 0;
   showPreviousMessage();
-  for (int j = 0; j <=6; j++) {
-    if (previous_packet[j] == message[j]){
-      equal++;
+  for (int i = 0; i<bufferSize; i++){
+    for (int j = 0; j <=6; j++) {
+      if (bufferMatrix[i][j] == message[j]){
+        if(i == 0){equal1++;}
+        if(i == 1){equal2++;}
+        if(i == 2){equal3++;}
+      }
     }
   }
 
-  equal = 7; //USED FOR TEST SIMILAR PACKET RECEIVED
+  //equal3 = 7; //USED FOR TEST SIMILAR PACKET RECEIVED
   // Controllo se anche packet count (message[6]) è uguale
-  if (equal > 6){
+  if (equal1 > 6 || equal2 >6 || equal3>6){
     Serial.println("==========================================================");
     Serial.println("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti");
     Serial.println("");
-    checkFrequency();
     send_mode = 0;
     Serial.println(F("Waiting for new incoming packets using: "));
     show_config();
 
   }else{ // pacchetto non ancora inoltrato e lo invio
-    Serial.println("Pacchetto diverso dal precedente");
+    Serial.println("Pacchetto diverso dai precedenti");
     send_mode = 2;
   }
 
