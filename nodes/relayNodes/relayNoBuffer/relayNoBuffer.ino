@@ -14,6 +14,11 @@ long int frequencies[3] = {433175000, 433375000};
 //controls the current frequency index in the array
 int indexFreq = 0;
 
+// used for have different frequencies for RX and TX
+bool swapRX_TXFreq = true;
+// used for change frequencies after transmission
+bool changeFreq = true;
+
 static float freq, txfreq;
 static int SF, CR, txsf;
 static long BW, preLen;
@@ -119,17 +124,23 @@ void show_config(){
 void checkFrequency()
 {
   // Update frequencies index
-  indexFreq=receivedCount%2;
+  if (changeFreq == true){
+    indexFreq=receivedCount%2;
+  }
   getRadioConf();
 }
 
 void read_freq() { freq = frequencies[indexFreq]; }
 
 void read_txfreq() {
-  if (indexFreq ==1){
-    txfreq = frequencies[0];
+  if (swapRX_TXFreq == true){
+    if (indexFreq ==1){
+      txfreq = frequencies[0];
+    }else{
+      txfreq = frequencies[indexFreq+1];
+    }
   }else{
-    txfreq = frequencies[indexFreq+1];
+    txfreq = frequencies[indexFreq];
   }
 }
 

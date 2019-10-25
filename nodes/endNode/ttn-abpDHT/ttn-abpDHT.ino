@@ -60,8 +60,6 @@ static const u1_t PROGMEM APPSKEY[16] = { 0xD8, 0xE0, 0x73, 0xB8, 0x12, 0x32, 0x
 static const PROGMEM u1_t NWKSKEY[16] = { 0xD5, 0x1F, 0x5F, 0x06, 0x8C, 0x3E, 0x5F, 0x81, 0x67, 0xAD, 0xDC, 0x81, 0x2E, 0x7A, 0x83, 0x43 };
 static const u1_t PROGMEM APPSKEY[16] = { 0x4D, 0x3B, 0x6D, 0x4F, 0x27, 0xFB, 0x61, 0xA2, 0x6D, 0xAA, 0x3E, 0xFC, 0x0B, 0xFE, 0x87, 0xDE };
 
-
-
 // LoRaWAN end-device address (DevAddr)
 static const u4_t DEVADDR = 0x26011032 ; // <-- Change this address for every node!
 
@@ -77,6 +75,7 @@ static osjob_t sendjob;
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
 const unsigned TX_INTERVAL = 10;
+bool multiFreq  = true;
 
 // Pin mapping<br>
 const lmic_pinmap lmic_pins = {
@@ -273,9 +272,14 @@ void setup() {
     LMIC_selectSubBand(1);
     #endif
 
-    // Disable channels
+    // Disable 433575000 freq
     LMIC_disableChannel(2);
-    //LMIC_disableChannel(1);
+    
+    if (multiFreq == false){
+      // Disable channels
+      LMIC_disableChannel(1);  
+    }
+    
     // Disable link check validation
     LMIC_setLinkCheckMode(0);
 
