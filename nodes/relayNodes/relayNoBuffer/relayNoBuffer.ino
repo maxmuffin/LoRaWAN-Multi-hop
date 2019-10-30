@@ -29,10 +29,17 @@ const long sendpkt_interval = 15000;  // 15 seconds for replay.
 unsigned long previousMillis = millis();
 unsigned long previousMillis_1 = millis();
 
-void getRadioConf();//Get LoRa Radio Configure from LG01
+void getRadioConf();//Get LoRa Radio Configure
 void setLoRaRadio();//Set LoRa Radio
-void receivepacket();// receive packet
+
+void receivePacket();// receive packet
+void checkPreviousPacket();
 void forwardPacket(); //forward received packet
+
+void copyMessage();
+
+void show_config();
+void showPreviousMessage();
 void printChangedMode();
 
 /* ***********************************************
@@ -83,7 +90,7 @@ void setup(){
 
 void loop(){
     if (!send_mode) {
-        receivepacket();          /* received message and wait server downstream */
+        receivePacket();          /* received message and wait server downstream */
     } else if (send_mode == 1){
         checkPreviousPacket();
     }else{
@@ -91,7 +98,7 @@ void loop(){
     }
 }
 
-//Get LoRa Radio Configure from LG01
+//Get LoRa Radio Configuration
 void getRadioConf() {
     read_freq();
     read_txfreq();
@@ -101,37 +108,12 @@ void getRadioConf() {
     read_SBW();
 }
 
-void show_config(){
-  if(receivedCount == 0){
-    Serial.println("Initial configuration. Listening on: ");
-  }
-  Serial.println("==========================================================");
-  Serial.print(F("RX Frequency: "));
-  Serial.print(freq);
-  Serial.print(F("\tTX Frequency: "));
-  Serial.println(txfreq);
-  Serial.print(F("Spreading Factor: SF"));
-  Serial.print(SF);
-  Serial.print(F("\t\tTX Spreading Factor: SF"));
-  Serial.println(txsf);
-  Serial.print(F("Coding Rate: 4/"));
-  Serial.print(CR);
-  Serial.print(F("\t\tBandwidth: "));
-  Serial.println(BW);
-  Serial.println("----------------------------------------------------------");
-}
-
-void checkFrequency()
-{
-  // Update frequencies index
-  if (changeFreq == true){
-    indexFreq=receivedCount%2;
-  }
-  getRadioConf();
-}
-
+// Read receiver frequency from frequencies array
 void read_freq() { freq = frequencies[indexFreq]; }
 
+// Read transmission frequency from frequencies array
+// if swapRX_TXFreq is True than use different frequencies for RX and TX
+// else use the same frequency for RX and TX
 void read_txfreq() {
   if (swapRX_TXFreq == true){
     if (indexFreq ==1){
@@ -144,14 +126,16 @@ void read_txfreq() {
   }
 }
 
+// Read Spreading Factor for receiving
 void read_SF() { SF = 7; }
 
+// read Spreading Factor for transmit
 void read_txSF(){ txsf = 9; }
-void read_CR() {
-  // 4/CR
-  CR=5;
-}
 
+// Read Coding rate 4/CR
+void read_CR() { CR=5;}
+
+// Read Single Bandwith for the transmission
 void read_SBW() {
   int b1;
 
@@ -172,6 +156,7 @@ void read_SBW() {
     }
 }
 
+// Set LoRa receiving and transmission parameters
 void setLoRaRadio() {
     LoRa.setFrequency(freq);
     LoRa.setSpreadingFactor(SF);
@@ -181,8 +166,39 @@ void setLoRaRadio() {
     //LoRa.setPreambleLength(preLen);
 }
 
-//Receiver LoRa packets and forward it
-void receivepacket() {
+// Print LoRa setting configurations
+void show_config(){
+  if(receivedCount == 0){
+    Serial.println("Initial configuration. Listening on: ");
+  }
+  Serial.println("==========================================================");
+  Serial.print(F("RX Frequency: "));
+  Serial.print(freq);
+  Serial.print(F("\tTX Frequency: "));
+  Serial.println(txfreq);
+  Serial.print(F("Spreading Factor: SF"));
+  Serial.print(SF);
+  Serial.print(F("\t\tTX Spreading Factor: SF"));
+  Serial.println(txsf);
+  Serial.print(F("Coding Rate: 4/"));
+  Serial.print(CR);
+  Serial.print(F("\t\tBandwidth: "));
+  Serial.println(BW);
+  Serial.println("----------------------------------------------------------");
+}
+
+// Used for update index of frequencies
+// if changeFreq is False than use always the same frequency after transmission
+void checkFrequency(){
+  // Update frequencies index
+  if (changeFreq == true){
+    indexFreq=receivedCount%2;
+  }
+  getRadioConf();
+}
+
+// Receiver LoRa packets and change mode to 1 --> CheckPreviousPacket
+void receivePacket() {
     // try to parse packet
     LoRa.setSpreadingFactor(SF);
     LoRa.receive(0);
@@ -259,6 +275,7 @@ void receivepacket() {
   }
 }
 
+// Clone previous received message after transmission complete
 void copyMessage(){
   int i = 0, j= 0;
 
@@ -269,6 +286,7 @@ void copyMessage(){
 
 }
 
+// Print previous messages into buffer
 void showPreviousMessage(){
   Serial.print(F("Previous Packet: "));
   Serial.print(F("["));
@@ -279,6 +297,40 @@ void showPreviousMessage(){
   Serial.println(F("]"));
 }
 
+// check if received message is contained into previous_packet
+// if yes than change mode to next RX without send it
+
+// [num] [device address] [pktCount]
+// 1byte    5 bytes         1 byte
+void checkPreviousPacket(){
+
+  int equal = 0;
+  showPreviousMessage();
+  for (int j = 0; j <=6; j++) {
+    if (previous_packet[j] == message[j]){
+      equal++;
+    }
+  }
+
+  //equal = 7; //USED FOR TEST SIMILAR PACKET RECEIVED
+  // Controllo se anche packet count (message[6]) è uguale
+  if (equal > 6){
+    Serial.println("==========================================================");
+    Serial.println("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti");
+    Serial.println("");
+    checkFrequency();
+    send_mode = 0;
+    Serial.println(F("Waiting for new incoming packets using: "));
+    show_config();
+
+  }else{ // pacchetto non ancora inoltrato e lo invio
+    Serial.println("Pacchetto diverso dal precedente");
+    send_mode = 2;
+  }
+
+}
+
+// Forward packet to next neighbour
 void forwardPacket(){
   int i = 0, j = 0;
 
@@ -332,34 +384,7 @@ void forwardPacket(){
 
 }
 
-void checkPreviousPacket(){
-
-  int equal = 0;
-  showPreviousMessage();
-  for (int j = 0; j <=6; j++) {
-    if (previous_packet[j] == message[j]){
-      equal++;
-    }
-  }
-
-  //equal = 7; //USED FOR TEST SIMILAR PACKET RECEIVED
-  // Controllo se anche packet count (message[6]) è uguale
-  if (equal > 6){
-    Serial.println("==========================================================");
-    Serial.println("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti");
-    Serial.println("");
-    checkFrequency();
-    send_mode = 0;
-    Serial.println(F("Waiting for new incoming packets using: "));
-    show_config();
-
-  }else{ // pacchetto non ancora inoltrato e lo invio
-    Serial.println("Pacchetto diverso dal precedente");
-    send_mode = 2;
-  }
-
-}
-
+// Print status of operation mode of relay
 void printChangedMode(){
   if(send_mode == 2){
       Serial.println(F("Sending received packet"));
