@@ -1,7 +1,7 @@
 
 unsigned long startTime;  //some global variables available anywhere in the program
 unsigned long currentTime;
-const unsigned long interval = 4000UL; // 4 seconds
+const unsigned long interval = 20000UL; // 4 seconds
 
 
 void setup()

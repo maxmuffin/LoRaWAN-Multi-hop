@@ -3,18 +3,16 @@
 #include <SPI.h>
 #include <DHT.h>
 #include <DHT_U.h>
-#include <Process.h>
-#include <SPI.h>
 #include <LoRa.h>
 
 unsigned long startTime;
 unsigned long currentTime;
-const unsigned long interval = 20000UL; // 20 seconds of relay than switch to end-node
+const unsigned long interval = 60000UL; // 20 seconds of relay than switch to end-node
+const long sendpkt_interval = 10000;  // 10 seconds for replay received message --> forward message every t seconds.
+unsigned long previousMillis = millis();
 
+//********************************* RELAY **********************************
 
-
-//*******************************************************************
-//                              RELAY
 //array of frequencies valid for the application to change
 long int frequencies[2] = {433175000, 433375000};
 //controls the current frequency index in the array
@@ -30,12 +28,6 @@ int bufferSize = 3;
 static float freq, txfreq;
 static int SF, CR, txsf;
 static long BW, preLen;
-static long old_time = millis();
-static long new_time;
-static unsigned long newtime;
-const long sendpkt_interval = 15000;  // 15 seconds for replay.
-unsigned long previousMillis = millis();
-unsigned long previousMillis_1 = millis();
 
 void getRadioConf();//Get LoRa Radio Configure
 void setLoRaRadio();//Set LoRa Radio
@@ -46,6 +38,7 @@ void forwardPacket(); //forward received packet
 
 void copyMessage();
 
+void set_relay_config(); //set radio configuration of relay
 void show_config();
 void showPreviousMessages();
 void printChangedMode();
@@ -79,20 +72,16 @@ int bufferMatrix[3][10] = {
 
 };
 
-//*******************************************************************
-//                              LORAWAN
+//********************************* LORAWAN **********************************
+
 // LoRaWAN NwkSKey, network session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
 static const PROGMEM u1_t NWKSKEY[16] = { 0xDE, 0x8C, 0x1F, 0xBF, 0x1D, 0xD4, 0x69, 0x62, 0xAC, 0x90, 0xD6, 0x7C, 0x85, 0x33, 0xED, 0xDC };
 
 // LoRaWAN AppSKey, application session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
 static const u1_t PROGMEM APPSKEY[16] = { 0xD8, 0xE0, 0x73, 0xB8, 0x12, 0x32, 0xD6, 0x7F, 0xFE, 0xF3, 0x52, 0xAD, 0x25, 0x7F, 0x20, 0x11 };
 
 // LoRaWAN end-device address (DevAddr)
-static const u4_t DEVADDR = 0x26011032 ; // <-- Change this address for every node!
+static const u4_t DEVADDR = 0x26011032 ;
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
@@ -103,10 +92,6 @@ void os_getDevKey (u1_t* buf) { }
 
 static uint8_t mydata[] = "16";
 static osjob_t sendjob;
-
-// Schedule TX every this many seconds (might become longer due to duty
-// cycle limitations).
-const unsigned TX_INTERVAL = 10;
 
 // Pin mapping<br>
 const lmic_pinmap lmic_pins = {
@@ -121,7 +106,7 @@ void onEvent (ev_t ev) {
     Serial.print(os_getTime());
     Serial.print(": ");
     switch(ev) {
-        case EV_SCAN_TIMEOUT:
+        /*case EV_SCAN_TIMEOUT:
             Serial.println(F("EV_SCAN_TIMEOUT"));
             break;
         case EV_BEACON_FOUND:
@@ -147,7 +132,7 @@ void onEvent (ev_t ev) {
             break;
         case EV_REJOIN_FAILED:
             Serial.println(F("EV_REJOIN_FAILED"));
-            break;
+            break;*/
         case EV_TXCOMPLETE:
             Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
             if (LMIC.txrxFlags & TXRX_ACK)
@@ -157,10 +142,8 @@ void onEvent (ev_t ev) {
               Serial.println(LMIC.dataLen);
               Serial.println(F(" bytes of payload"));
             }
-            
-            // Schedule next transmission
-            //os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
             break;
+        /*
         case EV_LOST_TSYNC:
             Serial.println(F("EV_LOST_TSYNC"));
             break;
@@ -176,7 +159,7 @@ void onEvent (ev_t ev) {
             break;
         case EV_LINK_ALIVE:
             Serial.println(F("EV_LINK_ALIVE"));
-            break;
+            break;*/
          default:
             Serial.println(F("Unknown event"));
             break;
@@ -191,10 +174,11 @@ void do_send(osjob_t* j){
         // Prepare upstream data transmission at the next possible time.
         LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
         Serial.println(F("Packet queued"));
-        
+        Serial.print(F("Sending packet on frequency:"));
+        Serial.println(LMIC.freq);
+
     }
     return;
-    // Next TX is scheduled after TX_COMPLETE event.
 }
 
 void setup_sendLoRaWAN(){
@@ -202,12 +186,9 @@ void setup_sendLoRaWAN(){
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
 
-  // Set static session parameters. Instead of dynamically establishing a session
-  // by joining the network, precomputed session parameters are be provided.
+  // Set static session parameters. Instead of dynamically establishing a session by joining the network, precomputed session parameters are be provided.
   #ifdef PROGMEM
-  // On AVR, these values are stored in flash and only copied to RAM
-  // once. Copy them to a temporary buffer here, LMIC_setSession will
-  // copy them into a buffer of its own again.
+  // On AVR, these values are stored in flash and only copied to RAM once. Copy them to a temporary buffer here, LMIC_setSession will copy them into a buffer of its own again.
   uint8_t appskey[sizeof(APPSKEY)];
   uint8_t nwkskey[sizeof(NWKSKEY)];
   memcpy_P(appskey, APPSKEY, sizeof(APPSKEY));
@@ -219,17 +200,11 @@ void setup_sendLoRaWAN(){
   #endif
 
   #if defined(CFG_eu868)
-  // Set up the channels used by the Things Network, which corresponds
-  // to the defaults of most gateways. Without this, only three base
-  // channels from the LoRaWAN specification are used, which certainly
-  // works, so it is good for debugging, but can overload those
-  // frequencies, so be sure to configure the full frequency range of
-  // your network here (unless your network autoconfigures them).
-  // Setting up channels should happen after LMIC_setSession, as that
-  // configures the minimal channel set.
-  // NA-US channels 0-71 are configured automatically
-  LMIC_setupChannel(0, 433175000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-  LMIC_setupChannel(1, 433375000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
+  // Set up the channels used by the Things Network, which corresponds to the defaults of most gateways. Without this, only three base channels from the LoRaWAN specification are used, which certainly
+  // works, so it is good for debugging, but can overload those frequencies, so be sure to configure the full frequency range of your network here (unless your network autoconfigures them).
+  // Setting up channels should happen after LMIC_setSession, as that configures the minimal channel set. NA-US channels 0-71 are configured automatically
+  LMIC_setupChannel(0, frequencies[0], DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+  LMIC_setupChannel(1, frequencies[1], DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
   LMIC_setupChannel(2, 433575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   //LMIC_setupChannel(3, 433775000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   //LMIC_setupChannel(4, 433975000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
@@ -237,15 +212,11 @@ void setup_sendLoRaWAN(){
   //LMIC_setupChannel(6, 434375000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   //LMIC_setupChannel(7, 434575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   //LMIC_setupChannel(8, 434775000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
-  // TTN defines an additional channel at 869.525Mhz using SF9 for class B
-  // devices' ping slots. LMIC does not have an easy way to define set this
-  // frequency and support for class B is spotty and untested, so this
+
+  // TTN defines an additional channel at 869.525Mhz using SF9 for class B devices' ping slots. LMIC does not have an easy way to define set this frequency and support for class B is spotty and untested, so this
   // frequency is not configured here.
   #elif defined(CFG_us915)
-  // NA-US channels 0-71 are configured automatically
-  // but only one group of 8 should (a subband) should be active
-  // TTN recommends the second sub band, 1 in a zero based count.
-  // https://github.com/TheThingsNetwork/gateway-conf/blob/master/US-global_conf.json
+  // NA-US channels 0-71 are configured automatically but only one group of 8 should (a subband) should be active TTN recommends the second sub band, 1 in a zero based count.
   LMIC_selectSubBand(1);
   #endif
 
@@ -262,11 +233,12 @@ void setup_sendLoRaWAN(){
 
   // Start job
   do_send(&sendjob);
-  // Disabling LMIC after send 
+
+  // Disabling LMIC after send
   LMIC_shutdown();
-  
-  
+
   // need another reset?
+
   return;
 }
 
@@ -275,16 +247,11 @@ void setup()
   Serial.begin(9600);  //start Serial in case we need to print debugging info
   startTime = millis();  //initial start time
 
-  //************************************* Relay
-  
-  set_relay();
-
-  //************************************* LoRaWAN
-  
-
+  //setup of radio configuration for relay
+  set_relay_config();
 }
 
-void set_relay(){
+void set_relay_config(){
   //Get Radio configure
   getRadioConf();
 
@@ -303,10 +270,11 @@ void set_relay(){
 
 void loop(){
   //Serial.println("Aggiorno il tempo");
-  currentTime = millis();  //get the current "time" (actually the number of milliseconds since the program started)
-  
+  // get the current "time"
+  currentTime = millis();
+
   if (currentTime - startTime < interval)  //test whether the period has elapsed
-  { 
+  {
     //Serial.println("Relay");
     if (!send_mode) {
         receivePacket();          /* received message and wait server downstream */
@@ -315,22 +283,25 @@ void loop(){
     }else{
       forwardPacket(); // SEND Packet
     }
-    
+
   }
-  else{
-    Serial.println("END-NODE");
-    //setup_sendLoRaWAN();
-    
+  else{ //after interval of time switch relay to end-node, send LoRaWAN packet and return to relay mode
+    if ( debug > 0 ){
+      Serial.println("END-NODE");
+    }
     setup_sendLoRaWAN();
-    
+
     delay(1000);
-    
-    Serial.println("\n reset");
+    if ( debug > 0 ){
+      Serial.println("\n reset");
+    }
     //delay(4000);
-    set_relay();
+
+    // restore relay configuration
+    set_relay_config();
     startTime = millis();
     return;
-    
+
   }
 
 }
@@ -440,10 +411,10 @@ void receivePacket() {
     LoRa.setSpreadingFactor(SF);
     LoRa.receive(0);
 
-   unsigned long currentMillis_1 = millis();
-    if ((currentMillis_1 - previousMillis_1 ) >= sendpkt_interval ){
+    unsigned long currentMillis = millis();
+     if ((currentMillis - previousMillis ) >= sendpkt_interval ){
 
-     previousMillis_1 = currentMillis_1;
+      previousMillis = currentMillis;
      packetSize = LoRa.parsePacket();
 
      if (packetSize) {   // Received a packet
@@ -460,56 +431,63 @@ void receivePacket() {
          Serial.println(LoRa.packetFrequencyError());
 
       }
-        // read packet
-        int i = 0;
 
-        Serial.print(F("Uplink Message: "));
-        Serial.print(F("["));
-        while (LoRa.available() && i < 256) {
-            message[i] = LoRa.read();
+    // read packet
+    int i = 0;
+    if ( debug > 0 ){
+      Serial.print(F("Uplink Message: "));
+      Serial.print(F("["));
+    }
+    while (LoRa.available() && i < 256) {
+      message[i] = LoRa.read();
 
-          if ( debug > 0 )  {
-            Serial.print(message[i], HEX);
-            Serial.print(F(" "));
-          }
+      if ( debug > 0 )  {
+        Serial.print(message[i], HEX);
+        Serial.print(F(" "));
+      }
 
-          i++;
-        }    /* end of while lora.available */
-        Serial.print(F("]"));
+      i++;
+    }
+    if ( debug > 0 ){
+      Serial.print(F("]"));
+      Serial.println("");
+    }
 
-        if ( debug > 0 ) Serial.println("");
 
-        /* process Data down */
-        char devaddr[12] = {'\0'};
+    /* process Data down */
+    char devaddr[12] = {'\0'};
+    if (debug > 0) {
         sprintf(devaddr, "%x%x%x%x", message[4], message[3], message[2], message[1]);
-        if (strlen(devaddr) > 8) {
-          for (i = 0; i < strlen(devaddr) - 2; i++) {
-            devaddr[i] = devaddr[i + 2];
-          }
-        }
-        devaddr[i] = '\0';
+    }
+    if (strlen(devaddr) > 8) {
+      for (i = 0; i < strlen(devaddr) - 2; i++) {
+          devaddr[i] = devaddr[i + 2];
+      }
+    }
+    devaddr[i] = '\0';
 
-        if (debug > 0) {
+    if (debug > 0) {
           Serial.print(F("Devaddr:"));
           Serial.println(devaddr);
+    }
+    // Increment received packet count
+    receivedCount++;
 
-          // Increment received packet count
-          receivedCount++;
+    if (receivedCount > 1){
+      send_mode = 1;
+    }else{
+      // skip to mode 2 (SEND received packet)
+      send_mode = 2;
+    }
 
-        if (receivedCount > 1){
-          send_mode = 1;
-        }else{
-          // skip to mode 2 (SEND received packet)
-          send_mode = 2;
-        }
+    if (debug >0){
+      printChangedMode();
+    }
 
-
-        printChangedMode();
-        return; /* exit the receive loop after received data from the node */
-      } /* end of if packetsize than 1 */
-    } /* end of receive loop */
-
+    return; /* exit the receive loop after received data from the node */
+    }
   }
+
 }
 
 // Clone previous received message into buffer after transmission complete
@@ -558,16 +536,22 @@ void checkPreviousPacket(){
   //equal3 = 7; //USED FOR TEST SIMILAR PACKET RECEIVED
   // Controllo se anche packet count (message[6]) è uguale
   if (equal1 > 6 || equal2 > 6 || equal3 > 6){
-    Serial.println("==========================================================");
-    Serial.println("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti");
-    Serial.println("");
+    if (debug > 0){
+      Serial.println("==========================================================");
+      Serial.println("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti");
+      Serial.println("");
+    }
     checkFrequency();
     send_mode = 0;
-    Serial.println(F("Waiting for new incoming packets using: "));
-    show_config();
+    if ( debug > 0){
+      Serial.println(F("Waiting for new incoming packets using: "));
+      show_config();
+    }
 
   }else{ // pacchetto non ancora inoltrato e lo invio
-    Serial.println("Pacchetto diverso dai precedenti");
+    if (debug > 0){
+      Serial.println("Pacchetto diverso dai precedenti");
+    }
     send_mode = 2;
   }
 
@@ -598,7 +582,7 @@ void forwardPacket(){
   }
 
 
-  for (j = 0; j < 1; j++) {     // send data down two times every frequency
+  for (j = 0; j < 1; j++) {     // send data down one time
 
         LoRa.setFrequency(txfreq);
         //LoRa.setSpreadingFactor(txfreq);
@@ -621,8 +605,9 @@ void forwardPacket(){
         copyMessage();
 
         send_mode = 0; //back to receive mode
-        printChangedMode();
-
+        if (debug > 0){
+          printChangedMode();
+        }
     }
 
 }
