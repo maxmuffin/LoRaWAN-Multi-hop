@@ -208,7 +208,9 @@ void setup() {
   // https://github.com/TheThingsNetwork/gateway-conf/blob/master/US-global_conf.json
   LMIC_selectSubBand(1);
 #endif
-
+  LMIC_disableChannel(1);
+  LMIC_disableChannel(2);
+  
   // Disable link check validation
   LMIC_setLinkCheckMode(0);
 
