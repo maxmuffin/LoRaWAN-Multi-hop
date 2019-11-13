@@ -7,7 +7,7 @@
 
 unsigned long startTime;
 unsigned long currentTime;
-const unsigned long interval = 60000UL; // 20 seconds of relay than switch to end-node
+const unsigned long interval = 60000UL; // 60 seconds of relay than switch to end-node
 const long sendpkt_interval = 10000;  // 10 seconds for replay received message --> forward message every t seconds.
 unsigned long previousMillis = millis();
 
@@ -82,6 +82,8 @@ static const u1_t PROGMEM APPSKEY[16] = { 0x34, 0xDC, 0x88, 0xCB, 0x1B, 0x0B, 0x
 
 // LoRaWAN end-device address (DevAddr)
 static const u4_t DEVADDR = 0x0067295E;
+// if deviceAddress starts with 2 zero, remove the first one
+char myDeviceAddress [8] = "067295e\0";
 
 // These callbacks are only used in over-the-air activation, so they are left empty here (we cannot leave them out completely unless DISABLE_JOIN is set in config.h, otherwise the linker will complain).
 void os_getArtEui (u1_t* buf) { }
@@ -91,11 +93,11 @@ void os_getDevKey (u1_t* buf) { }
 static uint8_t mydata[] = "16";
 static osjob_t sendjob;
 
-// Pin mapping<br>
+// Pin mapping
 const lmic_pinmap lmic_pins = {
     .nss = 10,// Connected to pin D10
     .rxtx = LMIC_UNUSED_PIN,// For placeholder only, Do not connected on RFM92/RFM95
-    .rst = 9,// Needed on RFM92/RFM95? (probably not)
+    .rst = 9,
     .dio = {2, 6, 7},// Specify pin numbers for DIO0, 1, 2
 // connected to D2, D6, D7
 };
@@ -167,8 +169,7 @@ void setup_sendLoRaWAN(){
   //LMIC_setupChannel(7, 434575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   //LMIC_setupChannel(8, 434775000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
 
-  // TTN defines an additional channel at 869.525Mhz using SF9 for class B devices' ping slots. LMIC does not have an easy way to define set this frequency and support for class B is spotty and untested, so this
-  // frequency is not configured here.
+  // TTN defines an additional channel at 869.525Mhz using SF9 for class B devices' ping slots. LMIC does not have an easy way to define set this frequency and support for class B is spotty and untested, so this frequency is not configured here.
   #elif defined(CFG_us915)
   // NA-US channels 0-71 are configured automatically but only one group of 8 should (a subband) should be active TTN recommends the second sub band, 1 in a zero based count.
   LMIC_selectSubBand(1);
@@ -241,13 +242,13 @@ void loop(){
   }
   else{ //after interval of time switch relay to end-node, send LoRaWAN packet and return to relay mode
     if ( debug > 0 ){
-      Serial.println("END-NODE");
+      Serial.println("END NODE");
     }
     setup_sendLoRaWAN();
 
     delay(1000);
     if ( debug > 0 ){
-      Serial.println("\nResetting LMIC");
+      Serial.println("\nReset LMIC");
     }
     //delay(4000);
 
@@ -333,7 +334,7 @@ void show_config(){
   if(receivedCount == 0){
     Serial.println("Initial configuration. Listening on: ");
   }
-  Serial.println("==========================================================");
+  //Serial.println("==========================================================");
   Serial.print(F("RX Frequency: "));
   Serial.print(freq);
   Serial.print(F("\tTX Frequency: "));
@@ -346,7 +347,7 @@ void show_config(){
   Serial.print(CR);
   Serial.print(F("\t\tBandwidth: "));
   Serial.println(BW);
-  Serial.println("----------------------------------------------------------");
+  //Serial.println("----------------------------------------------------------");
 }
 
 // Used for update index of frequencies
@@ -424,20 +425,37 @@ void receivePacket() {
           Serial.print(F("Devaddr:"));
           Serial.println(devaddr);
     }
-    // Increment received packet count
-    receivedCount++;
 
-    if (receivedCount > 1){
-      send_mode = 1;
+    int myDeviceSimilarities = 0;
+    for (int i = 0; i<strlen(myDeviceAddress); i++){
+      if (myDeviceAddress[i] == devaddr[i]){
+        myDeviceSimilarities++;
+      }
+    }
+
+    if (myDeviceSimilarities == strlen(myDeviceAddress)){
+      //if (debug > 0){
+          Serial.println("Pacchetto inviato da me non inoltro");
+      //}
+      send_mode = 0;
+
     }else{
-      // skip to mode 2 (SEND received packet)
-      send_mode = 2;
-    }
+      
+      // Increment received packet count
+      receivedCount++;
 
-    if (debug >0){
-      printChangedMode();
-    }
+      if (receivedCount > 1){
+        send_mode = 1;
+      }else{
+        // skip to mode 2 (SEND received packet)
+        send_mode = 2;
+      }
 
+      
+     }
+     if (debug >0){
+        printChangedMode();
+      }
     return; /* exit the receive loop after received data from the node */
     }
   }
@@ -491,20 +509,21 @@ void checkPreviousPacket(){
   // Controllo se anche packet count (message[6]) è uguale
   if (equal1 > 6 || equal2 > 6 || equal3 > 6){
     if (debug > 0){
-      Serial.println("==========================================================");
+      //Serial.println("==========================================================");
       Serial.println("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti");
       Serial.println("");
     }
     checkFrequency();
     send_mode = 0;
+
     if ( debug > 0){
-      Serial.println(F("Waiting for new incoming packets using: "));
+      //Serial.println(F("Waiting for new incoming packets using: "));
       show_config();
     }
 
   }else{ // pacchetto non ancora inoltrato e lo invio
     if (debug > 0){
-      Serial.println("Pacchetto diverso dai precedenti");
+      //Serial.println("Pacchetto diverso dai precedenti");
     }
     send_mode = 2;
   }
@@ -550,10 +569,10 @@ void forwardPacket(){
         delay(500);
 
         if (debug > 0){
-          Serial.print(F("[transmit] Packet forwarded successfully."));
+          //Serial.print(F("[transmit] Packet forwarded successfully."));
           Serial.print("\tTransmission n°: ");
           Serial.println(receivedCount);
-          Serial.println("==========================================================");
+          //Serial.println("==========================================================");
           Serial.println("");
         }
         copyMessage();
@@ -569,11 +588,11 @@ void forwardPacket(){
 // Print status of operation mode of relay
 void printChangedMode(){
   if(send_mode == 2){
-      Serial.println(F("Sending received packet"));
+      //Serial.println(F("Sending received packet"));
   }else if(send_mode == 0){
-      Serial.println(F("Waiting for new incoming packets using: "));
+      //Serial.println(F("Waiting for new incoming packets using: "));
       show_config();
     }else{
-      Serial.println(F("Checking new incoming message with previous message"));
+      //Serial.println(F("Checking new incoming message with previous message"));
     }
 }
