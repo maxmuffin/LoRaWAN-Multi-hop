@@ -7,7 +7,7 @@
 
 unsigned long startTime;
 unsigned long currentTime;
-const unsigned long interval = 60000UL; // 60 seconds of relay than switch to end-node
+const unsigned long interval = 20000UL; // 60 seconds of relay than switch to end-node
 const long sendpkt_interval = 10000;  // 10 seconds for replay received message --> forward message every t seconds.
 unsigned long previousMillis = millis();
 
@@ -84,13 +84,13 @@ static const PROGMEM u1_t NWKSKEY[16] = { 0x6D, 0x5F, 0x0F, 0xD1, 0xA6, 0x1F, 0x
 static const u1_t PROGMEM APPSKEY[16] = { 0x34, 0xDC, 0x88, 0xCB, 0x1B, 0x0B, 0xE1, 0x27, 0xD6, 0xD2, 0x63, 0xD9, 0x92, 0x3C, 0x49, 0x40 };
 
 // LoRaWAN end-device address (DevAddr)
-static const u4_t DEVADDR = 0x26011032;
-//static const u4_t DEVADDR = 0x0067295E;
+//static const u4_t DEVADDR = 0x26011032;
+static const u4_t DEVADDR = 0x0067295E;
 
 // if deviceAddress starts with 2 zero, remove the first one
 // or remove thefirst zero, lower letter
-char myDeviceAddress [8] = "2611032\0";
-//char myDeviceAddress [8] = "067295e\0";
+//char myDeviceAddress [8] = "2611032\0";
+char myDeviceAddress [8] = "067295e\0";
 
 // These callbacks are only used in over-the-air activation, so they are left empty here (we cannot leave them out completely unless DISABLE_JOIN is set in config.h, otherwise the linker will complain).
 void os_getArtEui (u1_t* buf) { }
@@ -113,9 +113,9 @@ void onEvent (ev_t ev) {
   Serial.print(": ");
   switch (ev) {
     case EV_TXCOMPLETE:
-      Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
+      Serial.println(F("EV_TXCOMPLETE"));
       if (LMIC.txrxFlags & TXRX_ACK)
-        Serial.println(F("Received ack"));
+        Serial.println(F("ack"));
       if (LMIC.dataLen) {
         Serial.println(F("Received "));
         //Serial.println(LMIC.dataLen);
@@ -131,21 +131,23 @@ void onEvent (ev_t ev) {
 void do_send(osjob_t* j) {
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND) {
-    Serial.println(F("OP_TXRXPEND, not sending"));
+    Serial.println(F("OP_TXRXPEND"));
   } else {
-    byte payload[2];
-    payload[0] = highByte(random(1,9));
-    payload[1] = lowByte(random(1,9));
+    byte payload[4];
+    payload[0] = highByte(random(1, 9));
+    payload[1] = lowByte(random(1, 9));
+    payload[2] = highByte(random(1, 9));
+    payload[3] = lowByte(random(1, 9));
 
     LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-    Serial.print(F("Sending packet on frequency:"));
+    Serial.print(F("Send on freq: "));
     Serial.println(LMIC.freq);
   }
   return;
 }
 
 void setup_sendLoRaWAN() {
-  
+
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
@@ -180,6 +182,7 @@ void setup_sendLoRaWAN() {
   LMIC_selectSubBand(1);
 #endif
 
+  // Disable channel 1 and 2 for use only one freq
   LMIC_disableChannel(1);
   LMIC_disableChannel(2);
 
@@ -208,7 +211,7 @@ void setup_sendLoRaWAN() {
 void setup()
 {
   Serial.begin(9600);
-  
+
   startTime = millis();
 
   //setup of radio configuration for relay
@@ -221,7 +224,11 @@ void set_relay_config() {
 
   if ( debug > 0 ) {
 
-    show_config();
+    if (receivedCount == 0) {
+      show_config();
+    } else {
+      Serial.println("Listening");
+    }
     //Serial.print(F("PreambleLength: "));
     //Serial.println(preLen);
   }
@@ -229,7 +236,7 @@ void set_relay_config() {
   if (!LoRa.begin(freq))
     if ( debug > 0 ) Serial.println(F("init LoRa failed"));
   setLoRaRadio();// Set LoRa Radio to Semtech Chip
-  delay(1000);
+  delay(500);
 }
 
 void loop() {
@@ -253,7 +260,7 @@ void loop() {
     }
     setup_sendLoRaWAN();
 
-    delay(1000);
+    delay(500);
     if ( debug > 0 ) {
       Serial.println("\nReset LMIC");
     }
@@ -345,21 +352,21 @@ void setLoRaRadio() {
 
 // Print LoRa setting configurations
 void show_config() {
-  if (receivedCount == 0) {
+  /*if (receivedCount == 0) {
     Serial.println("Initial configuration. Listening on: ");
-  }
+    }*/
   //Serial.println("==========================================================");
-  Serial.print(F("RX Frequency: "));
+  Serial.print(F("RX Freq: "));
   Serial.print(freq);
-  Serial.print(F("\tTX Frequency: "));
+  Serial.print(F("\tTX Freq: "));
   Serial.println(txfreq);
-  Serial.print(F("Spreading Factor: SF"));
+  Serial.print(F("Spreading Factor: "));
   Serial.print(SF);
-  Serial.print(F("\t\tTX Spreading Factor: SF"));
-  Serial.println(txsf);
-  Serial.print(F("Coding Rate: 4/"));
+  //Serial.print(F("\t\tTX Spreading Factor: SF"));
+  //Serial.println(txsf);
+  Serial.print(F("\tCR: 4/"));
   Serial.print(CR);
-  Serial.print(F("\t\tBandwidth: "));
+  Serial.print(F("\tBandwidth: "));
   Serial.println(BW);
   //Serial.println("----------------------------------------------------------");
 }
@@ -405,7 +412,7 @@ void receivePacket() {
       // read packet
       int i = 0;
       if ( debug > 0 ) {
-        Serial.print(F("Uplink Message: "));
+        Serial.print(F("Uplink pkt: "));
         Serial.print(F("["));
       }
       while (LoRa.available() && i < 256) {
@@ -443,8 +450,8 @@ void receivePacket() {
       for (int i = 0; i < strlen(myDeviceAddress); i++) {
         if (myDeviceAddress[i] == devaddr[i]) {
           myDeviceSimilarities++;
-          
-          
+
+
         }
       }
       //Serial.print("---- ");
@@ -454,7 +461,7 @@ void receivePacket() {
       if (myDeviceSimilarities == strlen(myDeviceAddress)) {
         /*if (debug > 0){
           Serial.println("Pacchetto inviato da me non inoltro");
-        }*/
+          }*/
         //Serial.println("NOOP");
         //send_mode = 0;
 
@@ -474,7 +481,7 @@ void receivePacket() {
       }
       /*if (debug > 0) {
         printChangedMode();
-      }*/
+        }*/
       return; /* exit the receive loop after received data from the node */
     }
   }
@@ -494,8 +501,8 @@ void copyMessage() {
 
 // Print previous messages into buffer
 void showPreviousMessages() {
+  Serial.println(F("Buffer: "));
   for (int i = 0; i < bufferSize; i++) {
-    Serial.print(F("Previous Packet: "));
     Serial.print(F("["));
     for (int j = 0; j <= 15; j++) {
       Serial.print(bufferMatrix[i][j], HEX);
@@ -537,8 +544,8 @@ void checkPreviousPacket() {
       //Serial.println("==========================================================");
       //Serial.println("Già inoltrato");
     }
-    if (changeFreq == true || swapRX_TXFreq == true){
-        checkFrequency();
+    if (changeFreq == true || swapRX_TXFreq == true) {
+      checkFrequency();
     }
 
     send_mode = 0;
@@ -546,12 +553,12 @@ void checkPreviousPacket() {
     /*if ( debug > 0) {
       Serial.println(F("Waiting for new incoming packets using: "));
       show_config();
-    }*/
+      }*/
 
   } else { // pacchetto non ancora inoltrato e lo invio
     /*if (debug > 0) {
       Serial.println("Pacchetto diverso dai precedenti");
-    }*/
+      }*/
     //Serial.println("Diverso");
     send_mode = 2;
   }
@@ -566,7 +573,8 @@ void forwardPacket() {
     packet[i] = message[i];
     i++;
   }
-  if ( debug > 0 ) {
+  /*
+    if ( debug > 0 ) {
 
     Serial.print(F("Sending Message: "));
     Serial.print(F("["));
@@ -580,7 +588,7 @@ void forwardPacket() {
     Serial.println(" bytes");
     Serial.println("");
 
-  }
+    }*/
 
 
   for (j = 0; j < 1; j++) {     // send data down one time
@@ -594,33 +602,33 @@ void forwardPacket() {
 
     delay(20);
 
-    if (changeFreq == true || swapRX_TXFreq == true){
-        checkFrequency();
+    if (changeFreq == true || swapRX_TXFreq == true) {
+      checkFrequency();
     }
 
-    delay(500);
-
-    if (debug > 0) {
+    delay(100);
+    Serial.println(F("FWD pkt"));
+    /*if (debug > 0) {
       //Serial.print(F("[transmit] Packet forwarded successfully."));
       Serial.print("\tTransmission n°: ");
       Serial.println(receivedCount);
       //Serial.println("==========================================================");
       Serial.println("");
-    }
+      }*/
     copyMessage();
 
     send_mode = 0; //back to receive mode
 
     /*if (debug > 0) {
       printChangedMode();
-    }*/
+      }*/
   }
 
 }
 
 /*
-// Print status of operation mode of relay
-void printChangedMode() {
+  // Print status of operation mode of relay
+  void printChangedMode() {
   if (send_mode == 2) {
     //Serial.println(F("Sending received packet"));
   } else if (send_mode == 0) {
@@ -629,5 +637,5 @@ void printChangedMode() {
   } else {
     //Serial.println(F("Checking new incoming message with previous message"));
   }
-}
+  }
 */
