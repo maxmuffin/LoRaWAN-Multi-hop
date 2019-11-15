@@ -5,6 +5,10 @@
 #include <DHT_U.h>
 #include <LoRa.h>
 
+#define DHT_PIN 3
+#define DHTTYPE DHT11
+DHT dht(DHT_PIN, DHTTYPE);
+
 unsigned long startTime;
 unsigned long currentTime;
 const unsigned long interval = 20000UL; // 60 seconds of relay than switch to end-node
@@ -13,8 +17,9 @@ unsigned long previousMillis = millis();
 
 //********************************* RELAY
 
+const byte freqArraySize = 2;
 //array of frequencies valid for the application to change
-long int frequencies[2] = {433175000, 433375000};
+long int frequencies[freqArraySize] = {433175000, 433375000};
 //controls the current frequency index in the array
 int indexFreq = 0;
 
@@ -133,11 +138,20 @@ void do_send(osjob_t* j) {
   if (LMIC.opmode & OP_TXRXPEND) {
     Serial.println(F("OP_TXRXPEND"));
   } else {
+
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+
+
+    // encode float as int
+    int16_t tempInt = round(t * 100);
+    int16_t humInt = round(h * 100);
+
     byte payload[4];
-    payload[0] = highByte(random(1, 9));
-    payload[1] = lowByte(random(1, 9));
-    payload[2] = highByte(random(1, 9));
-    payload[3] = lowByte(random(1, 9));
+    payload[0] = highByte(tempInt);
+    payload[1] = lowByte(tempInt);
+    payload[2] = highByte(humInt);
+    payload[3] = lowByte(humInt);
 
     LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
     Serial.print(F("Send on freq: "));
@@ -295,7 +309,7 @@ void read_freq() {
    else use the same frequency for RX and TX */
 void read_txfreq() {
   if (swapRX_TXFreq == true) {
-    if (indexFreq == 1) {
+    if (indexFreq == freqArraySize-1) {
       txfreq = frequencies[0];
     } else {
       txfreq = frequencies[indexFreq + 1];
@@ -376,7 +390,7 @@ void show_config() {
 void checkFrequency() {
   // Update frequencies index
   if (changeFreq == true) {
-    indexFreq = receivedCount % 2;
+    indexFreq = receivedCount % freqArraySize;
   }
   getRadioConf();
 }

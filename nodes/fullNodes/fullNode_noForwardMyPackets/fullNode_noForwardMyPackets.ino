@@ -5,10 +5,6 @@
 #include <DHT_U.h>
 #include <LoRa.h>
 
-#define DHT_PIN 3
-#define DHTTYPE DHT11
-DHT dht(DHT_PIN, DHTTYPE);
-
 unsigned long startTime;
 unsigned long currentTime;
 const unsigned long interval = 20000UL; // 60 seconds of relay than switch to end-node
@@ -17,8 +13,9 @@ unsigned long previousMillis = millis();
 
 //********************************* RELAY
 
+const byte freqArraySize = 2;
 //array of frequencies valid for the application to change
-long int frequencies[2] = {433175000, 433375000};
+long int frequencies[freqArraySize] = {433175000, 433375000};
 //controls the current frequency index in the array
 int indexFreq = 0;
 
@@ -49,12 +46,10 @@ void showPreviousMessages();
 //void printChangedMode();
 
 
-/* *******
-
-       Mode 0 = receive packet
-       Mode 1 = check if received packet is similar to previous send packet
-       Mode 2 = send/forward received packet
-
+/* ******* OPERATING MODE *******
+    Mode 0 = receive packet
+    Mode 1 = check if received packet is similar to previous send packet
+    Mode 2 = send/forward received packet
 *********** */
 
 static uint8_t packet[256]; // current received packet
@@ -88,13 +83,13 @@ static const PROGMEM u1_t NWKSKEY[16] = { 0x6D, 0x5F, 0x0F, 0xD1, 0xA6, 0x1F, 0x
 static const u1_t PROGMEM APPSKEY[16] = { 0x34, 0xDC, 0x88, 0xCB, 0x1B, 0x0B, 0xE1, 0x27, 0xD6, 0xD2, 0x63, 0xD9, 0x92, 0x3C, 0x49, 0x40 };
 
 // LoRaWAN end-device address (DevAddr)
-//static const u4_t DEVADDR = 0x26011032;
-static const u4_t DEVADDR = 0x0067295E;
+//static const u4_t DEVADDR = 0x26011032; // device 1
+static const u4_t DEVADDR = 0x0067295E; // device 2
 
 // if deviceAddress starts with 2 zero, remove the first one
 // or remove thefirst zero, lower letter
-//char myDeviceAddress [8] = "2611032\0";
-char myDeviceAddress [8] = "067295e\0";
+//char myDeviceAddress [8] = "2611032\0";  // device 1
+char myDeviceAddress [8] = "067295e\0"; // device 2
 
 // These callbacks are only used in over-the-air activation, so they are left empty here (we cannot leave them out completely unless DISABLE_JOIN is set in config.h, otherwise the linker will complain).
 void os_getArtEui (u1_t* buf) { }
@@ -137,29 +132,16 @@ void do_send(osjob_t* j) {
   if (LMIC.opmode & OP_TXRXPEND) {
     Serial.println(F("OP_TXRXPEND"));
   } else {
-
-    float h = dht.readHumidity();
-    float t = dht.readTemperature();
-
-    /*// Check if any reads failed and exit early (to try again).
-      if (isnan(h) || isnan(t)) {
-      Serial.println("Failed to read from DHT sensor!");
-      return;
-      }*/
-
-    // encode float as int
-    int16_t tempInt = round(t * 100);
-    int16_t humInt = round(h * 100);
-
-    byte payload[4];
-    payload[0] = highByte(tempInt);
-    payload[1] = lowByte(tempInt);
-    payload[2] = highByte(humInt);
-    payload[3] = lowByte(humInt);
+    byte payload[4]; //on device 1 send payload[4], on device 2 payload [2]
+    payload[0] = highByte(random(1, 9));
+    payload[1] = lowByte(random(1, 9));
+    payload[2] = highByte(random(1, 9));
+    payload[3] = lowByte(random(1, 9));
 
     LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-    Serial.print(F("Send on freq: "));
-    Serial.println(LMIC.freq);
+    Serial.println("Send LoRaWAN pkt");
+    //Serial.print(F("Send on freq: "));
+    //Serial.println(LMIC.freq);
   }
   return;
 }
@@ -169,7 +151,6 @@ void setup_sendLoRaWAN() {
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
-
 
   // Set static session parameters. Instead of dynamically establishing a session by joining the network, precomputed session parameters are be provided.
 #ifdef PROGMEM
@@ -222,14 +203,12 @@ void setup_sendLoRaWAN() {
   LMIC_shutdown();
 
   // need another reset?
-
   return;
 }
 
 void setup()
 {
   Serial.begin(9600);
-
   startTime = millis();
 
   //setup of radio configuration for relay
@@ -284,13 +263,11 @@ void loop() {
     }
     //delay(4000);
 
-    // restore relay configuration
+    // restore relay configuration and reset time
     set_relay_config();
     startTime = millis();
     return;
-
   }
-
 }
 
 //Get LoRa Radio Configuration
@@ -313,7 +290,7 @@ void read_freq() {
    else use the same frequency for RX and TX */
 void read_txfreq() {
   if (swapRX_TXFreq == true) {
-    if (indexFreq == 1) {
+    if (indexFreq == freqArraySize-1) {
       txfreq = frequencies[0];
     } else {
       txfreq = frequencies[indexFreq + 1];
@@ -394,7 +371,7 @@ void show_config() {
 void checkFrequency() {
   // Update frequencies index
   if (changeFreq == true) {
-    indexFreq = receivedCount % 2;
+    indexFreq = receivedCount % freqArraySize;
   }
   getRadioConf();
 }

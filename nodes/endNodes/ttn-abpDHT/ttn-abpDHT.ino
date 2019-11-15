@@ -44,16 +44,13 @@
 DHT dht(DHT_PIN, DHTTYPE);
 
 // LoRaWAN NwkSKey, network session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
+// This is the default Semtech key, which is used by the early prototype TTN network.
 
 // ************************ for THE THINGS NETWORK
 /*
   static const PROGMEM u1_t NWKSKEY[16] = { 0xDE, 0x8C, 0x1F, 0xBF, 0x1D, 0xD4, 0x69, 0x62, 0xAC, 0x90, 0xD6, 0x7C, 0x85, 0x33, 0xED, 0xDC };
 
-  // LoRaWAN AppSKey, application session key
-  // This is the default Semtech key, which is used by the early prototype TTN
-  // network.
+  // LoRaWAN AppSKey, application session key This is the default Semtech key, which is used by the early prototype TTN network.
   static const u1_t PROGMEM APPSKEY[16] = { 0xD8, 0xE0, 0x73, 0xB8, 0x12, 0x32, 0xD6, 0x7F, 0xFE, 0xF3, 0x52, 0xAD, 0x25, 0x7F, 0x20, 0x11 };
 */
 
@@ -64,21 +61,18 @@ static const u1_t PROGMEM APPSKEY[16] = { 0x4D, 0x3B, 0x6D, 0x4F, 0x27, 0xFB, 0x
 // LoRaWAN end-device address (DevAddr)
 static const u4_t DEVADDR = 0x26011032 ; // <-- Change this address for every node!
 
-// These callbacks are only used in over-the-air activation, so they are
-// left empty here (we cannot leave them out completely unless
-// DISABLE_JOIN is set in config.h, otherwise the linker will complain).
+// These callbacks are only used in over-the-air activation, so they are left empty here (we cannot leave them out completely unless DISABLE_JOIN is set in config.h, otherwise the linker will complain).
 void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
 static osjob_t sendjob;
 
-// Schedule TX every this many seconds (might become longer due to duty
-// cycle limitations).
+// Schedule TX every this many seconds (might become longer due to duty cycle limitations).
 const unsigned TX_INTERVAL = 30;
 bool multiFreq  = false;
 
-// Pin mapping<br>
+// Pin mapping
 const lmic_pinmap lmic_pins = {
   .nss = 10,// Connected to pin D10
   .rxtx = LMIC_UNUSED_PIN,// For placeholder only, Do not connected on RFM92/RFM95
@@ -225,12 +219,9 @@ void setup() {
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
-  // Set static session parameters. Instead of dynamically establishing a session
-  // by joining the network, precomputed session parameters are be provided.
+  // Set static session parameters. Instead of dynamically establishing a session by joining the network, precomputed session parameters are be provided.
 #ifdef PROGMEM
-  // On AVR, these values are stored in flash and only copied to RAM
-  // once. Copy them to a temporary buffer here, LMIC_setSession will
-  // copy them into a buffer of its own again.
+  // On AVR, these values are stored in flash and only copied to RAM once. Copy them to a temporary buffer here, LMIC_setSession will copy them into a buffer of its own again.
   uint8_t appskey[sizeof(APPSKEY)];
   uint8_t nwkskey[sizeof(NWKSKEY)];
   memcpy_P(appskey, APPSKEY, sizeof(APPSKEY));
@@ -242,15 +233,9 @@ void setup() {
 #endif
 
 #if defined(CFG_eu868)
-  // Set up the channels used by the Things Network, which corresponds
-  // to the defaults of most gateways. Without this, only three base
-  // channels from the LoRaWAN specification are used, which certainly
-  // works, so it is good for debugging, but can overload those
-  // frequencies, so be sure to configure the full frequency range of
-  // your network here (unless your network autoconfigures them).
-  // Setting up channels should happen after LMIC_setSession, as that
-  // configures the minimal channel set.
-  // NA-US channels 0-71 are configured automatically
+  // Set up the channels used by the Things Network, which corresponds to the defaults of most gateways. Without this, only three base channels from the LoRaWAN specification are used, which certainly
+  // works, so it is good for debugging, but can overload those frequencies, so be sure to configure the full frequency range of your network here (unless your network autoconfigures them).
+  // Setting up channels should happen after LMIC_setSession, as that configures the minimal channel set. NA-US channels 0-71 are configured automatically
   LMIC_setupChannel(0, 433175000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   LMIC_setupChannel(1, 433375000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
   LMIC_setupChannel(2, 433575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
@@ -261,15 +246,10 @@ void setup() {
   //LMIC_setupChannel(7, 434575000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   //LMIC_setupChannel(8, 434775000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
 
-  // TTN defines an additional channel at 869.525Mhz using SF9 for class B
-  // devices' ping slots. LMIC does not have an easy way to define set this
-  // frequency and support for class B is spotty and untested, so this
+  // TTN defines an additional channel at 869.525Mhz using SF9 for class B devices' ping slots. LMIC does not have an easy way to define set this frequency and support for class B is spotty and untested, so this
   // frequency is not configured here.
 #elif defined(CFG_us915)
-  // NA-US channels 0-71 are configured automatically
-  // but only one group of 8 should (a subband) should be active
-  // TTN recommends the second sub band, 1 in a zero based count.
-  // https://github.com/TheThingsNetwork/gateway-conf/blob/master/US-global_conf.json
+  // NA-US channels 0-71 are configured automatically but only one group of 8 should (a subband) should be active TTN recommends the second sub band, 1 in a zero based count.
   LMIC_selectSubBand(1);
 #endif
 

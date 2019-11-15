@@ -11,8 +11,9 @@ const String Sketch_Ver = "relayNode_multiFreq_buffer";
 // GESTIRE DOWNLINK IN CASO DI GATEWAY DUAL CHANNEL
 // USARE GATEWAY SINGLE CHANNEL
 
+const byte freqArraySize = 2;
 //array of frequencies valid for the application to change
-long int frequencies[2] = {433175000, 433375000};
+long int frequencies[freqArraySize] = {433175000, 433375000};
 //controls the current frequency index in the array
 int indexFreq = 0;
 
@@ -131,7 +132,7 @@ void read_freq() {
 // else use the same frequency for RX and TX
 void read_txfreq() {
   if (swapRX_TXFreq == true) {
-    if (indexFreq == 1) {
+    if (indexFreq == freqArraySize-1) {
       txfreq = frequencies[0];
     } else {
       txfreq = frequencies[indexFreq + 1];
@@ -213,7 +214,7 @@ void show_config() {
 void checkFrequency() {
   // Update frequencies index
   if (changeFreq == true) {
-    indexFreq = receivedCount % 2;
+    indexFreq = receivedCount % freqArraySize;
   }
   getRadioConf();
 }
