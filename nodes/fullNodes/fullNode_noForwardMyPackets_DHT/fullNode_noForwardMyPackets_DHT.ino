@@ -142,7 +142,6 @@ void do_send(osjob_t* j) {
     float h = dht.readHumidity();
     float t = dht.readTemperature();
 
-
     // encode float as int
     int16_t tempInt = round(t * 100);
     int16_t humInt = round(h * 100);
@@ -154,8 +153,9 @@ void do_send(osjob_t* j) {
     payload[3] = lowByte(humInt);
 
     LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-    Serial.print(F("Send on freq: "));
-    Serial.println(LMIC.freq);
+    Serial.println("Send pkt");
+    //Serial.print(F("Send on freq: "));
+    //Serial.println(LMIC.freq);
   }
   return;
 }
@@ -165,7 +165,6 @@ void setup_sendLoRaWAN() {
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
   LMIC_reset();
-
 
   // Set static session parameters. Instead of dynamically establishing a session by joining the network, precomputed session parameters are be provided.
 #ifdef PROGMEM
@@ -218,14 +217,12 @@ void setup_sendLoRaWAN() {
   LMIC_shutdown();
 
   // need another reset?
-
   return;
 }
 
 void setup()
 {
   Serial.begin(9600);
-
   startTime = millis();
 
   //setup of radio configuration for relay

@@ -139,7 +139,7 @@ void do_send(osjob_t* j) {
     payload[3] = lowByte(random(1, 9));
 
     LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-    Serial.println("Send LoRaWAN pkt");
+    Serial.println("Send pkt");
     //Serial.print(F("Send on freq: "));
     //Serial.println(LMIC.freq);
   }
