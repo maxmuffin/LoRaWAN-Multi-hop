@@ -11,8 +11,8 @@ DHT dht(DHT_PIN, DHTTYPE);
 
 unsigned long startTime;
 unsigned long currentTime;
-const unsigned long interval = 20000UL; // 60 seconds of relay than switch to end-node
-const long sendpkt_interval = 10000;  // 10 seconds for replay received message --> forward message every t seconds.
+const unsigned long interval = 20000UL; // 20 seconds of relay than switch to end-node
+const long sendpkt_interval = 5000;  // 5 seconds for replay received message --> forward message every t seconds.
 unsigned long previousMillis = millis();
 
 //********************************* RELAY
@@ -89,13 +89,13 @@ static const PROGMEM u1_t NWKSKEY[16] = { 0x6D, 0x5F, 0x0F, 0xD1, 0xA6, 0x1F, 0x
 static const u1_t PROGMEM APPSKEY[16] = { 0x34, 0xDC, 0x88, 0xCB, 0x1B, 0x0B, 0xE1, 0x27, 0xD6, 0xD2, 0x63, 0xD9, 0x92, 0x3C, 0x49, 0x40 };
 
 // LoRaWAN end-device address (DevAddr)
-//static const u4_t DEVADDR = 0x26011032;
-static const u4_t DEVADDR = 0x0067295E;
+static const u4_t DEVADDR = 0x26011032;
+//static const u4_t DEVADDR = 0x0067295E;
 
 // if deviceAddress starts with 2 zero, remove the first one
 // or remove thefirst zero, lower letter
-//char myDeviceAddress [8] = "2611032\0";
-char myDeviceAddress [8] = "067295e\0";
+char myDeviceAddress [8] = "2611032\0";
+//char myDeviceAddress [8] = "067295e\0";
 
 // These callbacks are only used in over-the-air activation, so they are left empty here (we cannot leave them out completely unless DISABLE_JOIN is set in config.h, otherwise the linker will complain).
 void os_getArtEui (u1_t* buf) { }
@@ -151,6 +151,8 @@ void do_send(osjob_t* j) {
     payload[1] = lowByte(tempInt);
     payload[2] = highByte(humInt);
     payload[3] = lowByte(humInt);
+    //Send random number for not have same values and discarded
+    //payload[4] = highByte(random(1, 9));
 
     LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
     Serial.println("Send pkt");
@@ -474,7 +476,7 @@ void receivePacket() {
           Serial.println("Pacchetto inviato da me non inoltro");
           }*/
         //Serial.println("NOOP");
-        //send_mode = 0;
+        send_mode = 0;
 
       } else { //non è inviato da me
 

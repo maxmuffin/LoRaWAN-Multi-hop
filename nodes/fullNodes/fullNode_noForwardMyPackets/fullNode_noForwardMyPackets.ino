@@ -7,8 +7,8 @@
 
 unsigned long startTime;
 unsigned long currentTime;
-const unsigned long interval = 20000UL; // 60 seconds of relay than switch to end-node
-const long sendpkt_interval = 10000;  // 10 seconds for replay received message --> forward message every t seconds.
+const unsigned long interval = 20000UL; // 20 seconds of relay than switch to end-node
+const long sendpkt_interval = 5000;  // 5 seconds for replay received message --> forward message every t seconds.
 unsigned long previousMillis = millis();
 
 //********************************* RELAY
@@ -458,7 +458,7 @@ void receivePacket() {
           Serial.println("Pacchetto inviato da me non inoltro");
           }*/
         //Serial.println("NOOP");
-        //send_mode = 0;
+        send_mode = 0;
 
       } else { //non è inviato da me
 
