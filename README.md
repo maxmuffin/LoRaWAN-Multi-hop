@@ -1,6 +1,4 @@
 # LoRaWAN-Multi-hop
-multi-hop implementation of LoRaWAN using single-channel gateway
-
 This project concerns an implementation of LoRaWAN node for Multi-Hop developed for my Master's Degree in Computer Science @UniBo  
 The repo contains:
 ### Nodes:
@@ -36,7 +34,9 @@ Modified for use **433.175MHz** and **433375MHz**  frequencies. Run using:
 
 ### Utils:
 Contains:
-- used libraries: **Arduino LoRa** https://github.com/sandeepmistry/arduino-LoRa  and **LMIC** https://github.com/matthijskooijman/arduino-lmic edited for **433MHz**.
+- used libraries:
+  - **Arduino LoRa** https://github.com/sandeepmistry/arduino-LoRa 
+  - **LMIC** https://github.com/matthijskooijman/arduino-lmic edited for **433MHz**.
 - wirings folder that contains fritzing schema for connect Futura Elettronica LoRa Shield to Raspberry 3B+ used for gateway.
 - sh scripts for easly start, stop and see status of **LoRaServer**. https://www.chirpstack.io/  
 See this Link for installation: https://www.chirpstack.io/guides/debian-ubuntu/
