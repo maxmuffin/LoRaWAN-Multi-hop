@@ -101,35 +101,41 @@ const lmic_pinmap lmic_pins = {
 };
 
 void onEvent (ev_t ev) {
-  Serial.print(os_getTime());
-  Serial.print(": ");
-  switch (ev) {
-    case EV_TXCOMPLETE:
-      Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
-      if (LMIC.txrxFlags & TXRX_ACK)
-        Serial.println(F("Received ack"));
-      if (LMIC.dataLen) {
-        Serial.println(F("Received "));
-        Serial.println(LMIC.dataLen);
-        Serial.println(F(" bytes of payload"));
-      }
-      break;
-    default:
-      Serial.println(F("Unknown event"));
-      break;
+  if (debug > 0 ) {
+    Serial.print(os_getTime());
+    Serial.print(": ");
+    switch (ev) {
+      case EV_TXCOMPLETE:
+        Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
+        if (LMIC.txrxFlags & TXRX_ACK)
+          Serial.println(F("Received ack"));
+        if (LMIC.dataLen) {
+          Serial.println(F("Received "));
+          Serial.println(LMIC.dataLen);
+          Serial.println(F(" bytes of payload"));
+        }
+        break;
+      default:
+        Serial.println(F("Unknown event"));
+        break;
+    }
   }
 }
 
 void do_send(osjob_t* j) {
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND) {
-    Serial.println(F("OP_TXRXPEND, not sending"));
+    if (debug > 0 ) {
+      Serial.println(F("OP_TXRXPEND, not sending"));
+    }
   } else {
     // Prepare upstream data transmission at the next possible time.
     LMIC_setTxData2(1, mydata, sizeof(mydata) - 1, 0);
-    Serial.println(F("Packet queued"));
-    Serial.print(F("Sending packet on frequency:"));
-    Serial.println(LMIC.freq);
+    if (debug > 0 ) {
+      Serial.println(F("Packet queued"));
+      Serial.print(F("Sending packet on frequency:"));
+      Serial.println(LMIC.freq);
+    }
 
   }
   return;
@@ -244,13 +250,13 @@ void loop() {
   }
   else { //after interval of time switch relay to end-node, send LoRaWAN packet and return to relay mode
     if ( debug > 0 ) {
-      Serial.println("END-NODE");
+      Serial.println(F("END-NODE"));
     }
     setup_sendLoRaWAN();
 
     delay(1000);
     if ( debug > 0 ) {
-      Serial.println("\nResetting LMIC");
+      Serial.println(F("\nResetting LMIC"));
     }
     //delay(4000);
 
@@ -342,9 +348,9 @@ void setLoRaRadio() {
 // Print LoRa setting configurations
 void show_config() {
   if (receivedCount == 0) {
-    Serial.println("Initial configuration. Listening on: ");
+    Serial.println(F("Initial configuration. Listening on: "));
   }
-  Serial.println("==========================================================");
+  Serial.println(F("=========================================================="));
   Serial.print(F("RX Frequency: "));
   Serial.print(freq);
   Serial.print(F("\tTX Frequency: "));
@@ -357,7 +363,7 @@ void show_config() {
   Serial.print(CR);
   Serial.print(F("\t\tBandwidth: "));
   Serial.println(BW);
-  Serial.println("----------------------------------------------------------");
+  Serial.println(F("----------------------------------------------------------"));
 }
 
 // Used for update index of frequencies
@@ -388,11 +394,11 @@ void receivePacket() {
         Serial.print(F("Get Packet: "));
         Serial.print(packetSize);
         Serial.print(F(" Bytes  "));
-        Serial.print("RSSI: ");
+        Serial.print(F("RSSI: "));
         Serial.print(LoRa.packetRssi());
-        Serial.print("  SNR: ");
+        Serial.print(F("  SNR: "));
         Serial.print(LoRa.packetSnr());
-        Serial.print(" dB  FreqErr: ");
+        Serial.print(F(" dB  FreqErr: "));
         Serial.println(LoRa.packetFrequencyError());
 
       }
@@ -508,8 +514,8 @@ void checkPreviousPacket() {
   // Controllo se anche packet count (message[6]) è uguale
   if (equal1 > 6 || equal2 > 6 || equal3 > 6) {
     if (debug > 0) {
-      Serial.println("==========================================================");
-      Serial.println("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti");
+      Serial.println(F("=========================================================="));
+      Serial.println(F("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti"));
       Serial.println("");
     }
     checkFrequency();
@@ -521,7 +527,7 @@ void checkPreviousPacket() {
 
   } else { // pacchetto non ancora inoltrato e lo invio
     if (debug > 0) {
-      Serial.println("Pacchetto diverso dai precedenti");
+      Serial.println(F("Pacchetto diverso dai precedenti"));
     }
     send_mode = 2;
   }
@@ -547,7 +553,7 @@ void forwardPacket() {
     Serial.print(F("]"));
     Serial.print("  ");
     Serial.print(i);
-    Serial.println(" bytes");
+    Serial.println(F(" bytes"));
     Serial.println("");
 
   }
@@ -568,9 +574,9 @@ void forwardPacket() {
 
     if (debug > 0) {
       Serial.print(F("[transmit] Packet forwarded successfully."));
-      Serial.print("\tTransmission n°: ");
+      Serial.print(F("\tTransmission n°: "));
       Serial.println(receivedCount);
-      Serial.println("==========================================================");
+      Serial.println(F("=========================================================="));
       Serial.println("");
     }
     copyMessage();
