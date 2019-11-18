@@ -1,6 +1,5 @@
 # LoRaWAN-Multi-hop
-This project concerns an implementation of LoRaWAN node for Multi-Hop developed for my Master's Degree in Computer Science @UniBo  
-The repo contains:
+This project concerns an implementation of LoRaWAN node for Multi-Hop developed for my Master's Degree in Computer Science @UniBo. The repo contains:
 ### Nodes:
 This folder contains different kind of nodes:
 - **End Nodes**: contains normal version of LoRaWAN end-node using ABP or OTA autentications and using or not DHT11 for take temperature and humidity values.
