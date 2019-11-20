@@ -451,9 +451,9 @@ void receivePacket() {
       }
 
       char devaddr[12] = {'\0'};
-      if (debug > 0) {
-        sprintf(devaddr, "%x%x%x%x", message[4], message[3], message[2], message[1]);
-      }
+
+      sprintf(devaddr, "%x%x%x%x", message[4], message[3], message[2], message[1]);
+
       if (strlen(devaddr) > 8) {
         for (i = 0; i < strlen(devaddr) - 2; i++) {
           devaddr[i] = devaddr[i + 2];
