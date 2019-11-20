@@ -5,6 +5,8 @@
 #include <DHT_U.h>
 #include <LoRa.h>
 
+// 0 for slave 1 for master
+int initConf = 1;
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 unsigned long time1, time2;
 int sleepTime, RTT, TX_interval, RX_interval;
@@ -66,13 +68,13 @@ static const PROGMEM u1_t NWKSKEY[16] = { 0x6D, 0x5F, 0x0F, 0xD1, 0xA6, 0x1F, 0x
 static const u1_t PROGMEM APPSKEY[16] = { 0x34, 0xDC, 0x88, 0xCB, 0x1B, 0x0B, 0xE1, 0x27, 0xD6, 0xD2, 0x63, 0xD9, 0x92, 0x3C, 0x49, 0x40 };
 
 // LoRaWAN end-device address (DevAddr)
-//static const u4_t DEVADDR = 0x26011032; // device 1
-static const u4_t DEVADDR = 0x0067295E; // device 2
+static const u4_t DEVADDR = 0x26011032; // device 1
+//static const u4_t DEVADDR = 0x0067295E; // device 2
 
 // if deviceAddress starts with 2 zero, remove the first one
 // or remove thefirst zero, lower letter
-//char myDeviceAddress [8] = "2611032\0";  // device 1
-char myDeviceAddress [8] = "067295e\0"; // device 2
+char myDeviceAddress [8] = "2611032\0";  // device 1
+//char myDeviceAddress [8] = "067295e\0"; // device 2
 int canForward = 0;
 int canSendLoRaWAN = 0;
 // These callbacks are only used in over-the-air activation, so they are left empty here (we cannot leave them out completely unless DISABLE_JOIN is set in config.h, otherwise the linker will complain).
@@ -119,11 +121,11 @@ void do_send(osjob_t* j) {
       Serial.println(F("OP_TXRXPEND"));
     }
   } else {
-    byte payload[2]; //on device 1 send payload[4], on device 2 payload [2]
+    byte payload[4]; //on device 1 send payload[4], on device 2 payload [2]
     payload[0] = highByte(random(1, 9));
     payload[1] = lowByte(random(1, 9));
-    //payload[2] = highByte(random(1, 9));
-    //payload[3] = lowByte(random(1, 9));
+    payload[2] = highByte(random(1, 9));
+    payload[3] = lowByte(random(1, 9));
 
     LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
     if ( debug > 0 ) {
@@ -304,44 +306,85 @@ void checkFrequency() {
 
 void initSync() {
 
+  //SLAVE
+  if (initConf == 0) {
 
-  // Ricevi il messaggio lora e splittalo
+    // solo per i test
+    time1 = startTime + 10000UL; //tra 10 secondi
+    time2 = startTime + 30000UL;
+    sleepTime = 10 * 1000; //30 secondi sleep
 
-  // solo per i test
-  time1 = startTime + 10000UL; //tra 10 secondi
-  time2 = startTime + 30000UL;
-  sleepTime = 10 * 1000; //30 secondi sleep
+    TX_interval = time2 - time1;
+    RX_interval = TX_interval;
 
-  TX_interval = time2 - time1;
-  RX_interval = TX_interval;
+    RTT = (TX_interval + sleepTime) * 2;
 
-  RTT = (TX_interval + sleepTime) * 2;
-
-  // aspetta fino alla txMode del master e imposta la receiver mode
-  currentTime = millis();
-  if (debug < 0) {
-    //Serial.print(F("Sincronizzo   "));
-    Serial.print(currentTime);
-    Serial.print(F("    "));
-    Serial.println(startTime + time2 + sleepTime);
-  }
-
-
-  if (currentTime >= startTime + time2 + sleepTime) {
-
-    //setup of radio configuration for relay
-    set_relay_config();
-
-    // passo in modalità ricezione
-    send_mode = 0;
+    // aspetta fino alla txMode del master e imposta la receiver mode
+    currentTime = millis();
     if (debug < 0) {
-      Serial.println(F("swap in rcv"));
+      //Serial.print(F("Sincronizzo   "));
+      Serial.print(currentTime);
+      Serial.print(F("    "));
+      Serial.println(startTime + time2 + sleepTime);
     }
 
-    RXmode_startTime = millis();
-    previousMillis = RXmode_startTime;
-  }
 
+    if (currentTime >= startTime + time2 + sleepTime) {
+
+      //setup of radio configuration for relay
+      set_relay_config();
+
+      // passo in modalità ricezione
+      send_mode = 0;
+      if (debug < 0) {
+        Serial.println(F("swap in rcv"));
+      }
+
+      RXmode_startTime = millis();
+      previousMillis = RXmode_startTime;
+    }
+  } else { //This is for Master
+
+
+    time1 = startTime + 10000UL; //tra 10 secondi
+    time2 = startTime + 30000UL; // 20 sec per RX/TX windows
+    sleepTime = 10 * 1000; //10 secondi sleep
+
+    //Devo inviare questi valori
+
+    TX_interval = time2 - time1;
+    RX_interval = TX_interval;
+
+    RTT = (TX_interval + sleepTime) * 2;
+
+    // aspetta fino a raggiungere la txMode
+    currentTime = millis();
+    if (debug < 0) {
+      //Serial.print(F("Sincronizzo   "));
+      Serial.print(currentTime);
+      Serial.print(F("    "));
+      Serial.println(startTime + time2 + sleepTime);
+    }
+
+
+    if (currentTime >= startTime + time2 + sleepTime) {
+
+      //setup of radio configuration for relay
+      set_relay_config();
+
+      // passo in modalità invio
+      delay(300);
+      send_mode = 2;
+      if (debug < 0) {
+        Serial.println(F("swap in send"));
+      }
+
+      TXmode_startTime = millis();
+      previousMillis = TXmode_startTime;
+
+
+    }
+  }
 }
 
 void loop() {
@@ -412,8 +455,8 @@ void receivePackets() {
         }
 
         char devaddr[12] = {'\0'};
-        sprintf(devaddr, "%x%x%x%x", packet[4], packet[3], packet[2], packet[1]);
 
+        sprintf(devaddr, "%x%x%x%x", packet[4], packet[3], packet[2], packet[1]);
         if (strlen(devaddr) > 8) {
           for (i = 0; i < strlen(devaddr) - 2; i++) {
             devaddr[i] = devaddr[i + 2];
@@ -521,7 +564,7 @@ void checkPreviousPackets() {
     // Controllo se anche packet count (message[6]) è uguale
     if (equal1 >= 14 || equal2 >= 14 || equal3 >= 14) {
       if (debug > 0 || debug < 0) {
-      Serial.println(F("Già inoltrato"));
+        Serial.println(F("Già inoltrato"));
       }
       if (changeFreq == true || swapRX_TXFreq == true) {
         checkFrequency();
@@ -547,6 +590,7 @@ void checkPreviousPackets() {
 }
 
 void forwardPackets() {
+
   //controllo fin quando sono nel range della rx del master per inviare i miei messaggi
   unsigned long currentMillisTX = millis();
   delay(1000);
