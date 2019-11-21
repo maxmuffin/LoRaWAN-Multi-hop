@@ -605,8 +605,8 @@ void forwardPackets() {
 
     if (canSendLoRaWAN == 0) { //for test send 3 times
       for (int k = 0; k < 2; k++) {
-        setup_sendLoRaWAN();
         delay(250);
+        setup_sendLoRaWAN();
       }
       canSendLoRaWAN++;
     }
