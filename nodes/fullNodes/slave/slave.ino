@@ -8,13 +8,13 @@
 // 0 for slave 1 for master
 int initConf = 1;
 // LoRaWAN end-device address (DevAddr)
-static const u4_t DEVADDR = 0x26011032; // device 1
-//static const u4_t DEVADDR = 0x0067295E; // device 2
+//static const u4_t DEVADDR = 0x26011032; // device 1
+static const u4_t DEVADDR = 0x0067295E; // device 2
 
 // if deviceAddress starts with 2 zero, remove the first one
 // or remove thefirst zero, lower letter
-char myDeviceAddress [8] = "2611032\0";  // device 1
-//char myDeviceAddress [8] = "067295e\0"; // device 2
+//char myDeviceAddress [8] = "2611032\0";  // device 1
+char myDeviceAddress [8] = "067295e\0"; // device 2
 //Set Debug = 1 to enable Output;
 // -1 to debug synchronization
 const int debug = -1;
