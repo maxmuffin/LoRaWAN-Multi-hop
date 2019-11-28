@@ -462,7 +462,7 @@ void receivePackets() {
       Serial.println(F("wait 10s"));
     }
     // se è stato ricevuto almeno un messaggio
-    delay(sleepTime);
+    delay(sleepTime);//cambiare modo in sleep (send_mode = 4)
 
     TXmode_startTime = millis();
 
@@ -495,6 +495,7 @@ void checkPreviousPackets() {
     //currentMillisRX = millis();
 
     // il contatore del fwdBuffer torna sempre a 0 dopo il reset
+    LoRa.sleep();
     send_mode = 0;
     return;
   } else {
@@ -536,8 +537,9 @@ void checkPreviousPackets() {
         checkFrequency();
       }
 
-      memset(packet, 0, sizeof packet);
+      //memset(packet, 0, sizeof packet);
       //packetSize = 0;
+      LoRa.sleep();
       send_mode = 0;
       return;
 
@@ -550,6 +552,8 @@ void checkPreviousPackets() {
       indexRCV++;
 
       copyMessageintoBuffers();
+      packetSize = 0; //da controllare SONO TUTTI RIMOSSI E COMMENTATI
+      LoRa.sleep();
       send_mode = 0;
 
       return;
@@ -581,7 +585,7 @@ void forwardPackets() {
         //LoRa.end();
 
         //showFwdBuffer();
-        
+
         for (int i = 0; i < rowBuffer; i++) {
 
           //int dim = 0;
@@ -596,7 +600,7 @@ void forwardPackets() {
               //Serial.print(message[j]);
               //Serial.print(F(" "));
             }
-         
+
 
           }
           //Serial.println("");
@@ -613,7 +617,7 @@ void forwardPackets() {
             LoRa.write(message, dimRcvMess[i]);
             LoRa.endPacket();
 
-            memset(message, 0, sizeof message);
+            //memset(message, 0, sizeof message);
 
 
 
@@ -640,7 +644,7 @@ void forwardPackets() {
       if (canSendLoRaWAN == 0) {
         // radio in standby
         //LoRa.end();
-
+        delay(1000);
         //LoRa.end();
         //for test send 3 times
         for (int k = 0; k < 2; k++) {
@@ -667,7 +671,7 @@ void forwardPackets() {
       Serial.println(F("wait 10s"));
     }
     //Aspetto per lo sleep
-    delay(sleepTime);
+    delay(sleepTime); //cambiare modo in sleep (send_mode = 4)
 
     // aggiorno il tempo di inizio ricezione
     RXmode_startTime = millis();
@@ -680,6 +684,7 @@ void forwardPackets() {
     canForward = 0;
     canSendLoRaWAN = 0;
     //Passo in receive mode
+    LoRa.sleep();
     send_mode = 0;
     return;
   }
@@ -724,7 +729,7 @@ void copyMessageintoBuffers() {
     j++;
   }
 
-  memset(packet, 0, sizeof packet);
+  //memset(packet, 0, sizeof packet);
   //packetSize = 0;
   index_fwdBuffer++;
 }
@@ -773,19 +778,23 @@ void listenOnRF(int pSize) {
     Serial.println(F("stop"));
     return;
   } else {
-    Serial.println(F("opplà"));
+    //Serial.println(F("opplà"));
 
-    pSize = LoRa.parsePacket();  //CONTROLLARE QUI CHE VENGANO AGGIORNATI I PACCHETTI
+    //packetSize = LoRa.parsePacket();  //CONTROLLARE QUI CHE VENGANO AGGIORNATI I PACCHETTI
                                       // PROBLEMA QUANDO SI RICEVE UN MY PACKET
                                       // LEGGE SOLO IL PRIMO, I SUCCESSIVI SONO UGUALI
-    //pSize = LoRa.parsePacket();
+    pSize = LoRa.parsePacket();
     //packetSize = pSize;
 
+    //memset(packet, 0, sizeof(packet));
+
     //Serial.print(F("a "));
+    //Serial.print(pSize);
+    //Serial.print(F("  "));
     //Serial.println(packetSize);
     //if (pSize>0) {   // Received a packet
-    /*
-      if ( debug < 0 ) {
+
+      if ( debug > 0 ) {
         Serial.println();
         Serial.print(F("Get Packet: "));
         Serial.print(packetSize);
@@ -797,7 +806,7 @@ void listenOnRF(int pSize) {
         //Serial.print(F(" dB  FreqErr: "));
         //Serial.println(F(LoRa.packetFrequencyError()));
         Serial.println();
-      }*/
+      }
 
     // read packet
     int i = 0;
@@ -806,7 +815,7 @@ void listenOnRF(int pSize) {
       Serial.print(F("["));
     }
     while (LoRa.available() && i < 256) {
-      packet[i] = LoRa.read();
+      packet[i] = (char)LoRa.read();
 
       if ( debug < 0 )  {
         Serial.print(packet[i], HEX);
@@ -820,6 +829,7 @@ void listenOnRF(int pSize) {
       Serial.println("");
     }
     packetSize = i;
+
 
     char devaddr[12] = {'\0'};
     // take devide address of received packets
@@ -848,9 +858,10 @@ void listenOnRF(int pSize) {
         Serial.println(F("my packet"));
       }
 
-      memset(packet, 0, sizeof packet);
-      memset(devaddr, 0, sizeof devaddr);
-      packetSize = 0;
+      //memset(packet, 0, sizeof packet);
+      //memset(devaddr, 0, sizeof devaddr);
+      //packetSize = 0;
+      LoRa.sleep();
       send_mode = 0;
       return;
 
