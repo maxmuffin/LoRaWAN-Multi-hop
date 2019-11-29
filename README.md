@@ -12,8 +12,13 @@ Contains different variant of full-node:
   - __fullNode_noForwardMyPackets__: this is an optimization of fullNode_simple that after receive a packet analize the header for check if the sender Device Address is the same as yours. If yes than rest in receiver mode otherwise switch to mode 1 for checking if message is already forwarded.
   - __fullNode_noForwardMyPackets_DHT__: this version send LoRaWAN message including DHT11 data (temperature, humidity).
   - __fullNode_noForwardMyPackets_LED__: this version uses RGB led for easly understand the state of full-node without using debugging.
+- **Full Sync Nodes**: this version allows synchronization between nodes. It can work as both a Master and a Slave. In the initial phase the *master* periodically sends synchronization messages to the *slave* containing the **RX and TX intervals** and the **sleepTime**. When the slave receives the message, it sets the parameters received and waits until the first transmission of the master by getting into receivingMode.
+After each RX / TX interval the nodes go to sleep for a sleepTime.
+The intervals after synchronization are as follows:
+  - *Master*:&nbsp;   |&nbsp;&nbsp;&nbsp;&nbsp;**TX**&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sleep__&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;**RX**&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sleep__&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+  - *Slave*: &nbsp;&nbsp;&nbsp; |&nbsp;&nbsp;&nbsp;&nbsp;**RX**&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sleep__&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;**TX**&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sleep__&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
   
-For the hardware have been used Arduino UNO and Dragino Shield v1.4
+For the hardware have been used Arduino UNO and Dragino LoRa Shield v1.4
 
 ### Gateway:
 - **single_chan_pkt_fwd**: an implementation of a Single Channel LoRaWAN Gateway mainteined by Thomas Telkamp thomas@telkamp.eu.  
