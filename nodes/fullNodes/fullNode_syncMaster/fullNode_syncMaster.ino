@@ -154,10 +154,10 @@ void do_send(osjob_t* j) {
 
       byte payload[4];
       /*
-      payload[0] = highByte(tempInt);
-      payload[1] = lowByte(tempInt);
-      payload[2] = highByte(humInt);
-      payload[3] = lowByte(humInt);*/
+        payload[0] = highByte(tempInt);
+        payload[1] = lowByte(tempInt);
+        payload[2] = highByte(humInt);
+        payload[3] = lowByte(humInt);*/
       payload[0] = highByte(random(1, 9));
       payload[1] = lowByte(random(1, 9));
       payload[2] = highByte(random(1, 9));
@@ -484,13 +484,23 @@ void checkPreviousPackets() {
 
   tmp = packetSize;
 
+  if (tmp == 0) {
+
+      Serial.println(F("null packet"));
+      LoRa.sleep(); //forse questo sleep è da togliere, rallenta molto
+      send_mode = 0;
+      return;
+    }
+
   if (receivedCount == 1) {
+
+    
+
+    //dimRcvMess[indexRCV] = tmp;
+    //indexRCV++;
 
     //copia il messaggio sia nel buffer che nel fwdBuffer
     copyMessageintoBuffers();
-
-    dimRcvMess[indexRCV] = tmp;
-    indexRCV++;
 
     //currentMillisRX = millis();
 
@@ -548,11 +558,16 @@ void checkPreviousPackets() {
         Serial.println(F("diverso"));
       }
 
-      dimRcvMess[indexRCV] = tmp;
-      indexRCV++;
+      
+
+      
+
+      //dimRcvMess[indexRCV] = tmp;
+      //indexRCV++;
 
       copyMessageintoBuffers();
-      packetSize = 0; //da controllare SONO TUTTI RIMOSSI E COMMENTATI
+      
+      //packetSize = 0; //da controllare SONO TUTTI RIMOSSI E COMMENTATI
       LoRa.sleep();
       send_mode = 0;
 
@@ -590,9 +605,12 @@ void forwardPackets() {
 
           //int dim = 0;
           bool jump = false; //used for jump row if is empty
+          if (dimRcvMess[i] == 0){
+            jump = true;
+          }
 
           for (int j = 0; j <= dimFwdBuffer; j++) {
-            if (fwdBuffer[i][0] == '/0' && fwdBuffer[i][1] == '/0' && fwdBuffer[i][2] == '/0') {
+            if (fwdBuffer[i][0] == '/0' && fwdBuffer[i][1] == '/0' && fwdBuffer[i][2] == '/0') { //aggiungere && dimRcvMess[i] != 0
               jump = true;
             } else if (fwdBuffer[i][j] != '/0') {
               //copy fwdBuffer row into message
@@ -612,10 +630,17 @@ void forwardPackets() {
             //LoRa.setSpreadingFactor(txfreq);
 
             delay(1000);
+            
+            if (dimRcvMess[i] >0 ){
 
-            LoRa.beginPacket();
-            LoRa.write(message, dimRcvMess[i]);
-            LoRa.endPacket();
+              LoRa.beginPacket();
+              LoRa.write(message, dimRcvMess[i]);
+              LoRa.endPacket();
+            }else{
+              Serial.println(F("not send 0 pkt "));
+              showFwdBuffer();
+              showDimRcvMess();
+            }
 
             //memset(message, 0, sizeof message);
 
@@ -723,16 +748,23 @@ void copyMessageintoBuffers() {
     i++;
   }
 
-  // Copy received message into forward Buffer
-  while (j <= packetSize) {
-    fwdBuffer[index_fwdBuffer % rowBuffer][j] = packet[j];
-    j++;
-  }
+  if (index_fwdBuffer < rowBuffer && packetSize > 0) { //da controllare bene, l'index non deve sforare il fwdBuffer
+    // Copy received message into forward Buffer
+    
+    while (j <= packetSize) {
+      fwdBuffer[index_fwdBuffer][j] = packet[j]; //modificato anche qui prima era index_fwdBuffer%rowBuffer
+      j++;
+    }
 
-  //memset(packet, 0, sizeof packet);
-  //packetSize = 0;
-  index_fwdBuffer++;
+    // copio la dimensione neln'array delle dimensioni
+    dimRcvMess[index_fwdBuffer] = j-1;
+
+    //memset(packet, 0, sizeof packet);
+    //packetSize = 0;
+    index_fwdBuffer++;
+  }
 }
+
 
 
 // Print previous messages into buffer
@@ -762,11 +794,17 @@ void showFwdBuffer() {
   }
 }
 
+void showDimRcvMess(){
+  for (int i = 0; i< rowBuffer; i++){
+    Serial.println(dimRcvMess[i]);
+  }
+}
+
 void capturePackets() {
   if (send_mode == 0) {
     LoRa.setSpreadingFactor(SF);
     //if (initRcv == 0) {
-      LoRa.onReceive(listenOnRF);
+    LoRa.onReceive(listenOnRF);
     //}
     LoRa.receive();
   }
@@ -781,8 +819,8 @@ void listenOnRF(int pSize) {
     //Serial.println(F("opplà"));
 
     //packetSize = LoRa.parsePacket();  //CONTROLLARE QUI CHE VENGANO AGGIORNATI I PACCHETTI
-                                      // PROBLEMA QUANDO SI RICEVE UN MY PACKET
-                                      // LEGGE SOLO IL PRIMO, I SUCCESSIVI SONO UGUALI
+    // PROBLEMA QUANDO SI RICEVE UN MY PACKET
+    // LEGGE SOLO IL PRIMO, I SUCCESSIVI SONO UGUALI
     pSize = LoRa.parsePacket();
     //packetSize = pSize;
 
@@ -794,19 +832,19 @@ void listenOnRF(int pSize) {
     //Serial.println(packetSize);
     //if (pSize>0) {   // Received a packet
 
-      if ( debug > 0 ) {
-        Serial.println();
-        Serial.print(F("Get Packet: "));
-        Serial.print(packetSize);
-        Serial.print(F(" Bytes  "));
-        Serial.print(F("RSSI: "));
-        Serial.print(LoRa.packetRssi());
-        //Serial.print(F("  SNR: "));
-        //Serial.print(F(LoRa.packetSnr()));
-        //Serial.print(F(" dB  FreqErr: "));
-        //Serial.println(F(LoRa.packetFrequencyError()));
-        Serial.println();
-      }
+    if ( debug > 0 ) {
+      Serial.println();
+      Serial.print(F("Get Packet: "));
+      Serial.print(packetSize);
+      Serial.print(F(" Bytes  "));
+      Serial.print(F("RSSI: "));
+      Serial.print(LoRa.packetRssi());
+      //Serial.print(F("  SNR: "));
+      //Serial.print(F(LoRa.packetSnr()));
+      //Serial.print(F(" dB  FreqErr: "));
+      //Serial.println(F(LoRa.packetFrequencyError()));
+      Serial.println();
+    }
 
     // read packet
     int i = 0;
@@ -815,7 +853,7 @@ void listenOnRF(int pSize) {
       Serial.print(F("["));
     }
     while (LoRa.available() && i < 256) {
-      packet[i] = (char)LoRa.read();
+      packet[i] = LoRa.read();
 
       if ( debug < 0 )  {
         Serial.print(packet[i], HEX);
@@ -830,6 +868,7 @@ void listenOnRF(int pSize) {
     }
     packetSize = i;
 
+    
 
     char devaddr[12] = {'\0'};
     // take devide address of received packets
