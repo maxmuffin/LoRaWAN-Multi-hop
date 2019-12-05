@@ -15,8 +15,9 @@ Contains different variant of full-node:
 - **Full Sync Nodes**: this version allows synchronization between nodes. It can work as both a Master and a Slave. In the initial phase the *master* periodically sends synchronization messages to the *slave* containing the **RX and TX intervals** and the **sleepTime**. When the slave receives the message, it sets the parameters received and waits until the first transmission of the master by getting into receivingMode.
 After each RX / TX interval the nodes go to sleep for a sleepTime.
 The intervals after synchronization are as follows:
-  - *Master*:&nbsp;   |&nbsp;&nbsp;&nbsp;&nbsp;**TX**&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sleep__&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;**RX**&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sleep__&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
-  - *Slave*: &nbsp;&nbsp;&nbsp; |&nbsp;&nbsp;&nbsp;&nbsp;**RX**&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sleep__&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;**TX**&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sleep__&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<p align="center">
+  <img src="/utils/images/SyncNodes_schema.png" width="700">
+</p>
   
 For the hardware have been used Arduino UNO and Dragino LoRa Shield v1.4
 
