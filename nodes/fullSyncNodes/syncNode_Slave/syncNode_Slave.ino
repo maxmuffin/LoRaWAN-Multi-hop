@@ -550,7 +550,7 @@ void loop() {
     receivePackets();
   } else if (send_mode == 1) {
     checkPreviousPackets();
-  } else {
+  } else if (send_mode == 2) {
     forwardPackets();
   }
 
@@ -578,9 +578,9 @@ void receivePackets() {
     if (debug < 0) {
       Serial.println(F("wait 10s"));
     }
-    // se è stato ricevuto almeno un messaggio
-    delay(sleepTime); //cambiare modo in sleep (send_mode = 4) così non ascolta onReceive
 
+    send_mode = 4;
+    delay(sleepTime);
     TXmode_startTime = millis();
 
     send_mode = 2;
@@ -602,7 +602,8 @@ void capturePackets() {
 // read and parse received LoRa packets
 void listenOnRF(int pSize) {
 
-  if (send_mode == 2 ) {// aggiungere anche in caso di send_mode 4
+  //controllo se sono in fase di invio o in sleep, in quel caso return
+  if (send_mode == 2 || send_mode == 4) {
     return;
   } else {
 
@@ -896,7 +897,8 @@ void forwardPackets() {
       Serial.println(F("wait 10s"));
     }
     //Aspetto per lo sleep
-    delay(sleepTime); //cambiare modo in sleep (send_mode = 4)
+    send_mode = 4;
+    delay(sleepTime);
 
     // aggiorno il tempo di inizio ricezione
     RXmode_startTime = millis();
