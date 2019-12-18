@@ -61,13 +61,13 @@ static long BW, preLen;
 
 // Packets
 static int packetSize;
-static uint8_t packet[50]; // current received packet
-static uint8_t message[50]; //used for forward messages into fwdBuffer
+static uint8_t packet[30]; // current received packet
+static uint8_t message[30]; //used for forward messages into fwdBuffer
 
 // Buffers
-const byte rowBuffer = 3;
+const byte rowBuffer = 5;
 const byte dimPreviousMessBuffer = 15;
-const byte dimFwdBuffer = 22;
+const byte dimFwdBuffer = 20;
 int index_fwdBuffer;
 
 // used for keep dimensions of received packets

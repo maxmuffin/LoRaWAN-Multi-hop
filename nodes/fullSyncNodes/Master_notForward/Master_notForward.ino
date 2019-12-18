@@ -30,8 +30,7 @@ unsigned long currentMillisRX;
 int sleepTime, RTT, TX_interval, RX_interval;
 long lastSendTime = 0;
 int send_mode = -1;
-int receivedCount;
-int canForward = 0;
+
 int canSendLoRaWAN = 0;
 
 //sync header
@@ -41,42 +40,17 @@ byte idByte = 0xFF;
 const byte freqArraySize = 2;
 //array of frequencies valid for the application to change
 long int frequencies[freqArraySize] = {433175000, 433375000};
-//controls the current frequency index in the array
-int indexFreq = 0;
-// used for have different frequencies for RX and TX
-bool swapRX_TXFreq = false;
-// used for change frequencies after transmission
-bool changeFreq = false;
 
-static float freq, txfreq;
-static int SF, CR, txsf;
-static long BW, preLen;
 
 /* ******* OPERATING MODE *******
     Mode -1 = wait for synch
     Mode  0 = receive packet
     Mode  1 = check if received packet is similar to previous send packet
     Mode  2 = send/forward received packet
+    Mode 4 = sleep mode
 *********** */
 
-// Packets
-static int packetSize;
-static uint8_t packet[30]; // current received packet
-static uint8_t message[30]; //used for forward messages into fwdBuffer
 
-// Buffers
-const byte rowBuffer = 5;
-const byte dimPreviousMessBuffer = 15;
-const byte dimFwdBuffer = 20;
-int index_fwdBuffer;
-
-// used for keep dimensions of received packets
-int dimRcvMess[rowBuffer];
-int tmp;
-
-// buffer for previous received and send message
-int prevMessBuffer[rowBuffer][dimPreviousMessBuffer];
-int fwdBuffer[rowBuffer][dimFwdBuffer];
 
 //********************************* LORAWAN
 
@@ -234,10 +208,6 @@ void setup_sendLoRaWAN() {
 void setup() {
   Serial.begin(9600);
 
-  //initialize buffers
-  initPreviousMessagesBuffer();
-  initFwdBuffer();
-
   // if i'm master set tx and rx interval
   if (initConf == 1 ) {
     TX_interval = 20000;
@@ -252,7 +222,7 @@ void setup() {
     sleepTime = 10000; //10 secondi sleep
     RTT = (TX_interval + sleepTime) * 2;
   }
-  receivedCount = 0;
+
   // initialize ratio at 433 MHz
   if (!LoRa.begin(433E6)) {
     if (debug > 0) Serial.println(F("LoRa init failed"));
@@ -262,100 +232,6 @@ void setup() {
 
 }
 
-// Set relay's radio configurations
-void set_relay_config() {
-  //Get Radio configure
-  getRadioConf();
-
-  if (!LoRa.begin(freq))
-    if ( debug > 0 ) Serial.println(F("init LoRa failed"));
-  setLoRaRadio();// Set LoRa Radio to Semtech Chip
-}
-
-//Get LoRa Radio Configuration
-void getRadioConf() {
-  read_freq();
-  read_txfreq();
-  read_SF();
-  read_txSF();
-  read_CR();
-  read_SBW();
-}
-
-// Read receiver frequency from frequencies array
-void read_freq() {
-  freq = frequencies[indexFreq];
-}
-
-/* Read transmission frequency from frequencies array
-   if swapRX_TXFreq is True than use different frequencies for RX and TX
-   else use the same frequency for RX and TX */
-void read_txfreq() {
-  if (swapRX_TXFreq == true) {
-    if (indexFreq == freqArraySize - 1) {
-      txfreq = frequencies[0];
-    } else {
-      txfreq = frequencies[indexFreq + 1];
-    }
-  } else {
-    txfreq = frequencies[indexFreq];
-  }
-}
-
-// Read Spreading Factor for receiving
-void read_SF() {
-  SF = 7;
-}
-
-// read Spreading Factor for transmit
-void read_txSF() {
-  txsf = 9;
-}
-
-// Read Coding rate 4/CR
-void read_CR() {
-  CR = 5;
-}
-
-// Read Single Bandwith for the transmission
-void read_SBW() {
-  int b1 = 7;
-
-  switch (b1)
-  {
-    case 0: BW = 7.8E3; break;
-    case 1: BW = 10.4E3; break;
-    case 2: BW = 15.6E3; break;
-    case 3: BW = 20.8E3; break;
-    case 4: BW = 31.25E3; break;
-    case 5: BW = 41.7E3; break;
-    case 6: BW = 62.5E3; break;
-    case 7: BW = 125E3; break;
-    case 8: BW = 250E3; break;
-    case 9: BW = 500E3; break;
-    default: break;
-  }
-}
-
-// Set LoRa receiving and transmission parameters
-void setLoRaRadio() {
-  LoRa.setFrequency(freq);
-  LoRa.setSpreadingFactor(SF);
-  LoRa.setSignalBandwidth(BW);
-  LoRa.setCodingRate4(CR);
-  LoRa.setSyncWord(0x34);
-  //LoRa.setPreambleLength(preLen);
-}
-
-// Used for update index of frequencies
-// if changeFreq is False than use always the same frequency after transmission
-void checkFrequency() {
-  // Update frequencies index
-  if (changeFreq == true) {
-    indexFreq = receivedCount % freqArraySize;
-  }
-  getRadioConf();
-}
 
 void initSync() {
 
@@ -373,9 +249,8 @@ void initSync() {
       currentTime = millis();
 
       // da quando ho inviato l'ack
-      if (currentTime >= startTime + RTT + 300) {                         //Da vedere bene!!
-        //setup of radio configuration for relay
-        set_relay_config();
+      if (currentTime >= startTime + RTT + 300) {
+
 
         // passo in modalità ricezione
         send_mode = 0;
@@ -399,10 +274,8 @@ void initSync() {
       currentTime = millis();
       // da quando ho ricevuto l'ack
       if (currentTime >= startTime + RTT) {
-        //setup of radio configuration for relay
-        set_relay_config();
+
         // passo in modalità invio
-        //delay(300);
         send_mode = 2;
         if (debug < 0) {
           Serial.println(F("swap in send"));
@@ -459,16 +332,7 @@ void onReceiveSyncforSlave(int pSize) {
   RXmode_endTime = payload.substring(ind1 + 1, ind2 + 1).toInt();
   int ind3 = payload.indexOf(',', ind2 + 1 );
   sleepTime = payload.substring(ind2 + 1).toInt();
-  /*
-    Serial.print("Received Message: ");
-    Serial.print(idByteRcv, HEX);
-    Serial.print(" ");
-    Serial.print(RXmode_startTime);
-    Serial.print(" ");
-    Serial.print(RXmode_endTime);
-    Serial.print(" ");
-    Serial.print(sleepTime);
-  */
+
   TXmode_endTime = RXmode_endTime;
   TXmode_startTime = RXmode_startTime;
 
@@ -508,14 +372,7 @@ void syncWithSlave() {
     LoRa.write(payload.length());
     LoRa.print(payload);
     LoRa.endPacket();
-    /*
-      Serial.print("Messaggio inviato: ");
-      Serial.print(idByte, HEX);
-      Serial.print(" ");
-      Serial.print(payload.length());
-      Serial.print(" ");
-      Serial.println(payload);
-    */
+
     if (debug < 0) Serial.println(F("sync send"));
 
     lastSendTime = millis();
@@ -550,25 +407,24 @@ void loop() {
     initSync();
   } else if (send_mode == 0) {
     receivePackets();
-  } else if (send_mode == 1) {
-    checkPreviousPackets();
   } else if (send_mode == 2) {
     forwardPackets();
+  } else {
+    // nothing
   }
 
 }
 
-/*
-  ########## RECEIVE ##########
-*/
+// receive packets, mon fa nulla
 void receivePackets() {
+  // da testare
+  LoRa.sleep();
 
   //controllo fin quando sono nel range della tx del master per ricevere i suoi messaggi
   currentMillisRX = millis();
 
   if (currentMillisRX < RXmode_startTime + RX_interval) { // < RXmode_endTime
 
-    capturePackets();
 
   } else { //finito il tempo di ricezione
     // aggiorno gli intervalli di rx
@@ -579,7 +435,7 @@ void receivePackets() {
     }
 
     send_mode = 4;
-    delay(sleepTime);//cambiare modo in sleep (send_mode = 4)
+    delay(sleepTime);
 
     TXmode_startTime = millis();
 
@@ -590,218 +446,11 @@ void receivePackets() {
   }
 }
 
-// Lora receive callback that launch listenOnRF
-void capturePackets() {
-  if (send_mode == 0) {
-    LoRa.setSpreadingFactor(SF);
-    LoRa.onReceive(listenOnRF);
-    LoRa.receive();
-  }
-}
 
-// read and parse received LoRa packets
-void listenOnRF(int pSize) {
-
-  //controllo se sono in fase di invio o in sleep, in quel caso return
-  if (send_mode == 2 || send_mode == 4 ) {
-    return;
-  } else {
-
-    pSize = LoRa.parsePacket();
-
-    if ( debug > 0 ) {
-      Serial.println();
-      Serial.print(F("Get Packet: "));
-      Serial.print(packetSize);
-      Serial.print(F(" Bytes  "));
-      Serial.print(F("RSSI: "));
-      Serial.print(LoRa.packetRssi());
-      //Serial.print(F("  SNR: "));
-      //Serial.print(F(LoRa.packetSnr()));
-      //Serial.print(F(" dB  FreqErr: "));
-      //Serial.println(F(LoRa.packetFrequencyError()));
-      Serial.println();
-    }
-
-    // read packet
-    int i = 0;
-    if ( debug < 0 ) {
-      Serial.print(F("Uplink pkt: "));
-      Serial.print(F("["));
-    }
-    while (LoRa.available() && i < 256) {
-      packet[i] = LoRa.read();
-
-      if ( debug < 0 )  {
-        Serial.print(packet[i], HEX);
-        Serial.print(F(" "));
-      }
-
-      i++;
-    }
-    if ( debug < 0 ) {
-      Serial.print(F("]"));
-      Serial.println("");
-    }
-    packetSize = i;
-
-    // check info of received packets's device address
-    char devaddr[12] = {'\0'};
-    // take devide address of received packets
-    sprintf(devaddr, "%x%x%x%x", packet[4], packet[3], packet[2], packet[1]);
-    if (strlen(devaddr) > 8) {
-      for (i = 0; i < strlen(devaddr) - 2; i++) {
-        devaddr[i] = devaddr[i + 2];
-      }
-    }
-    devaddr[i] = '\0';
-
-    if (debug > 0) {
-      Serial.print(F("Devaddr:"));
-      Serial.println(devaddr);
-    }
-
-    int myDeviceSimilarities = 0;
-    for (int i = 0; i < strlen(myDeviceAddress); i++) {
-      if (myDeviceAddress[i] == devaddr[i]) {
-        myDeviceSimilarities++;
-      }
-    }
-    // Check if received packet has my device info then not forward it
-    if (myDeviceSimilarities == strlen(myDeviceAddress)) {
-      if (debug > 0 || debug < 0) {
-        Serial.println(F("my packet"));
-      }
-
-      LoRa.sleep();
-      send_mode = 0;
-      return;
-
-    } else { //non è inviato da me
-
-      // Increment received packet count
-      receivedCount++;
-      if (debug < 0) {
-        Serial.println(F("Analize"));
-      }
-      send_mode = 1;
-      return;
-
-    }
-  }
-}
-
-/*
-  ########## CHECKING PACKETS ##########
-*/
-
-// controllo il pacchetto ricevuto con quelli presenti nel PrevMessBuffer
-// se è il primo pacchetto ricevuto non lo controllo e lo inserisco nei buffers
-void checkPreviousPackets() {
-
-  tmp = packetSize;
-
-  if (tmp == 0) { //Forse è da togliere
-
-    Serial.println(F("null packet"));
-    LoRa.sleep(); //forse questo sleep è da togliere, rallenta molto
-    send_mode = 0;
-    return;
-  }
-
-  if (receivedCount == 1) {
-
-    //copia il messaggio sia nel buffer che nel fwdBuffer
-    copyMessageintoBuffers();
-
-    // il contatore del fwdBuffer torna sempre a 0 dopo il reset
-    LoRa.sleep();
-    send_mode = 0;
-    return;
-  } else {
-    // se il messaggio ricevuto è nel buffer
-    //  allora torno alla receiver mode send_mode = 0;
-    // altrimenti copia il messaggio sia nel buffer che nel fwdBuffer poi send_mode = 0;
-    // il contatore del fwdBuffer torna sempre a 0 dopo il reset quindi buffer e fwdBuffer hanno indici diversi
-
-    int equal1 = 0, equal2 = 0, equal3 = 0;
-
-    for (int i = 0; i < rowBuffer; i++) {
-      for (int j = 0; j <= dimPreviousMessBuffer; j++) {
-        if (prevMessBuffer[i][j] == packet[j]) {
-          if (i == 0) {
-            equal1++;
-          }
-          if (i == 1) {
-            equal2++;
-          }
-          if (i == 2) {
-            equal3++;
-          }
-        }
-      }
-    }
-
-    //equal3 = 7; //USED FOR TEST SIMILAR PACKET RECEIVED
-    // Controllo se anche packet count (message[6]) è uguale
-    if (equal1 >= 14 || equal2 >= 14 || equal3 >= 14) {
-      if (debug > 0 || debug < 0) {
-        Serial.println(F("Già inoltrato"));
-      }
-      if (changeFreq == true || swapRX_TXFreq == true) {
-        checkFrequency();
-      }
-
-      LoRa.sleep();
-      send_mode = 0;
-      return;
-
-    } else { // pacchetto non ancora inoltrato e lo aggiungo ai buffers
-      if (debug > 0 || debug < 0) {
-        Serial.println(F("diverso"));
-      }
-
-      copyMessageintoBuffers();
-
-      LoRa.sleep();
-      send_mode = 0;
-      return;
-    }
-  }
-  return;
-
-}
-
-// Clone previous received message into buffer after transmission complete
-void copyMessageintoBuffers() {
-  int i = 0, j = 0;
-
-  // Copy received message into previous Messages Buffer
-  while (i <= dimPreviousMessBuffer) {
-    prevMessBuffer[receivedCount % rowBuffer][i] = packet[i];
-    i++;
-  }
-
-  if (index_fwdBuffer < rowBuffer && packetSize > 0) { //da controllare bene, l'index non deve sforare il fwdBuffer
-    // Copy received message into forward Buffer
-
-    while (j <= packetSize) {
-      fwdBuffer[index_fwdBuffer][j] = packet[j]; //modificato anche qui prima era index_fwdBuffer%rowBuffer
-      j++;
-    }
-
-    // copio la dimensione neln'array delle dimensioni e incremento l'index
-    dimRcvMess[index_fwdBuffer] = j - 1;
-    index_fwdBuffer++;
-  }
-}
-
-/*
-  ########## FORWARD PACKETS AND SEND LORAWAN ##########
-*/
-
-// forward all packets in the fwdBuffer when is time to fwd and send his LoRaWAN packets
+// send his LoRaWAN packets
 void forwardPackets() {
+  // da testare
+  LoRa.sleep();
 
   //controllo fin quando sono nel range della rx del master per inviare i miei messaggi
   unsigned long currentMillisTX = millis();
@@ -809,71 +458,12 @@ void forwardPackets() {
   if (currentMillisTX < TXmode_startTime + TX_interval) {
 
     if (currentMillisTX < TXmode_startTime + 2000) {
-
+      // aspetto 2 secondi prima di inviare
     } else {
-      //invio tutti i messaggi nel fwdBuffer
-      //se iniziano per /0 salta alla riga successiva
-      //leggi fin quando non trovi /0 quindi prendi la dimensione e invia
-
-      if (canForward == 0) { //deve avvenire una sola volta, dopo il primo inoltro di tutti i pkt nel buffer imposta canForward a 1
-
-        for (int i = 0; i < rowBuffer; i++) {
-
-          bool jump = false; //used for jump row if is empty
-          if (dimRcvMess[i] == 0) {
-            jump = true;
-          }
-
-          for (int j = 0; j <= dimFwdBuffer; j++) {
-            if (fwdBuffer[i][0] == '/0' && fwdBuffer[i][1] == '/0' && fwdBuffer[i][2] == '/0') { //aggiungere && dimRcvMess[i] != 0
-              jump = true;
-            } else if (fwdBuffer[i][j] != '/0') {
-              //copy fwdBuffer row into message
-              message[j] = fwdBuffer[i][j];
-            }
-          }
-
-          if (jump == false) {
-
-            // Forward using LoRa
-            LoRa.setFrequency(txfreq);
-            //LoRa.setSpreadingFactor(txfreq);
-
-            delay(1000);
-
-            if (dimRcvMess[i] > 0 ) { //invia solo quelli maggiori di 0
-
-              LoRa.beginPacket();
-              LoRa.write(message, dimRcvMess[i]);
-              LoRa.endPacket();
-            } else {
-              Serial.println(F("not send 0 pkt "));
-              //showFwdBuffer();
-              //showDimRcvMess();
-            }
-
-            if (changeFreq == true || swapRX_TXFreq == true) {
-              checkFrequency();
-            }
-            if (debug > 0 || debug < 0) {
-              Serial.print(F("FWD pkt "));
-              Serial.println(dimRcvMess[i]);
-            }
-          } else {
-            delay(1000);
-            if (debug > 0 || debug < 0) {
-              Serial.println(F("Jump"));
-            }
-          }
-        }
-        canForward++;
-      }
-
 
       // used for repeat only one time
       if (canSendLoRaWAN == 0) {
 
-        delay(1000);
 
         //for test send 2 times
         for (int k = 0; k < 2; k++) {
@@ -886,9 +476,6 @@ void forwardPackets() {
 
     }
   } else { //scaduto l'intervallo per inviare
-
-    //reset del fwdBuffer
-    initFwdBuffer();
 
     // aggiorno gli intervalli di tx
     // prossimo inizio trasmissione
@@ -905,73 +492,11 @@ void forwardPackets() {
     if (debug < 0) {
       Serial.println(F("swap to rcv"));
     }
-    //setup of radio configuration for relay
-    set_relay_config();
-    canForward = 0;
+
     canSendLoRaWAN = 0;
     //Passo in receive mode
     LoRa.sleep();
     send_mode = 0;
     return;
-  }
-}
-
-/*
-  ########## INIT AND PRINT BUFFERS ##########
-*/
-void initPreviousMessagesBuffer() {
-  for (int i = 0; i < rowBuffer; i++) {
-    for (int j = 0; j <= dimPreviousMessBuffer; j++) {
-      prevMessBuffer[i][j] = '0';
-    }
-  }
-}
-
-void initFwdBuffer() {
-  index_fwdBuffer = 0;
-
-  for (int i = 0; i < rowBuffer; i++) {
-    for (int j = 0; j <= dimFwdBuffer; j++) {
-      fwdBuffer[i][j] = '/0';
-    }
-    dimRcvMess[i] = 0;
-  }
-
-  if (debug > 0) {
-    Serial.println(F("reset fwdB"));
-  }
-}
-
-// Print previous messages into buffer
-void showPreviousMessages() {
-  Serial.println(F("Buffer: "));
-  for (int i = 0; i < rowBuffer; i++) {
-    Serial.print(F("["));
-    for (int j = 0; j <= dimPreviousMessBuffer; j++) {
-      Serial.print(prevMessBuffer[i][j], HEX);
-      Serial.print(F(" "));
-    }
-    Serial.println(F("]"));
-  }
-}
-
-// Print fwdBuffer
-void showFwdBuffer() {
-
-  Serial.println(F("FWD Buffer: "));
-  for (int i = 0; i < rowBuffer; i++) {
-    Serial.print(F("["));
-    for (int j = 0; j <= dimFwdBuffer; j++) {
-      Serial.print(fwdBuffer[i][j], HEX);
-      Serial.print(F(" "));
-    }
-    Serial.println(F("]"));
-  }
-}
-
-// Print array of dimensions of received packets
-void showDimRcvMess() {
-  for (int i = 0; i < rowBuffer; i++) {
-    Serial.println(dimRcvMess[i]);
   }
 }
