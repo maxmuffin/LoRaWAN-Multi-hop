@@ -20,23 +20,23 @@ Contains different variant of full-node:
 After each RX / TX interval the nodes go to sleep for a sleepTime.
 The intervals after synchronization are as follows:
 <p align="center">
-  <img src="/utils/images/SyncNodes_schema.png" width="700">
+  <img src="/utils/images/SyncNodes_topology.png" width="700">
 </p>
-  
+
 For the hardware have been used Arduino UNO and Dragino LoRa Shield v1.4
 
 ### Gateway:
 - **single_chan_pkt_fwd**: an implementation of a Single Channel LoRaWAN Gateway mainteined by Thomas Telkamp thomas@telkamp.eu.  
 This folder was forked by @jlesech https://github.com/tftelkamp/single_chan_pkt_fwd to add json configuration file
 then forked by @hallard https://github.com/hallard/single_chan_pkt_fwd  
-Modified for use **433MHz** frequency. Run using: 
+Modified for use **433MHz** frequency. Run using:
 ```console For run
  sudo ./single_chan_pkt_fwd
 ```
 - **dual_channel_pkt_fwd**: an implementation of a Dual Channel LoRaWAN Gateway mainteined by Thomas Telkamp thomas@telkamp.eu
 Was forked by @jlesech https://github.com/tftelkamp/single_chan_pkt_fwd to add json configuration file
 then forked by @hallard https://github.com/hallard/single_chan_pkt_fwd then forked by @bokse001 https://github.com/bokse001/dual_chan_pkt_fwd to add dual channel support, configurable network interface and uputronics Raspberry Pi+ LoRa(TM) Expansion Board.  
-Modified for use **433.175MHz** and **433375MHz**  frequencies. Run using: 
+Modified for use **433.175MHz** and **433375MHz**  frequencies. Run using:
 ```console For run
  sudo ./dual_chan_pkt_fwd
 ```
@@ -44,7 +44,7 @@ Modified for use **433.175MHz** and **433375MHz**  frequencies. Run using:
 ### Utils:
 Contains:
 - used libraries:
-  - **Arduino LoRa** https://github.com/sandeepmistry/arduino-LoRa 
+  - **Arduino LoRa** https://github.com/sandeepmistry/arduino-LoRa
   - **LMIC** https://github.com/matthijskooijman/arduino-lmic edited for **433MHz**.
 - wirings folder that contains fritzing schema for connect Futura Elettronica LoRa Shield to Raspberry 3B+ used for gateway.
 - sh scripts for easly start, stop and see status of **LoRaServer**. https://www.chirpstack.io/  
