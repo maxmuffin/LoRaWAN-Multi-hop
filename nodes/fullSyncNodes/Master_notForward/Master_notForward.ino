@@ -30,7 +30,7 @@ unsigned long currentMillisRX;
 int sleepTime, RTT, TX_interval, RX_interval;
 long lastSendTime = 0;
 int send_mode = -1;
-
+int initOnStartup = 0;
 int canSendLoRaWAN = 0;
 
 //sync header
@@ -145,7 +145,7 @@ void do_send(osjob_t* j) {
   return;
 }
 
-void setup_sendLoRaWAN() {
+void setupLoRaWAN() {
 
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
@@ -196,10 +196,10 @@ void setup_sendLoRaWAN() {
   LMIC_setClockError (MAX_CLOCK_ERROR * 10 / 100);
 
   // Start job
-  do_send(&sendjob);
+  //do_send(&sendjob);
 
   // Disabling LMIC after send
-  LMIC_shutdown();
+  //LMIC_shutdown();
 
   // need another reset?
   return;
@@ -451,6 +451,10 @@ void receivePackets() {
 void forwardPackets() {
   // da testare
   LoRa.sleep();
+  if (initOnStartup == 0){
+    setupLoRaWAN();
+    initOnStartup++;
+  }
 
   //controllo fin quando sono nel range della rx del master per inviare i miei messaggi
   unsigned long currentMillisTX = millis();
@@ -463,12 +467,11 @@ void forwardPackets() {
 
       // used for repeat only one time
       if (canSendLoRaWAN == 0) {
-
-
         //for test send 2 times
         for (int k = 0; k < 2; k++) {
           delay(1000);
-          setup_sendLoRaWAN();
+          // take DHT values and send LoraWAN pkt
+          do_send(&sendjob);
           Serial.println(F("s"));
         }
         canSendLoRaWAN++;
@@ -495,7 +498,7 @@ void forwardPackets() {
 
     canSendLoRaWAN = 0;
     //Passo in receive mode
-    LoRa.sleep();
+    //LoRa.sleep();
     send_mode = 0;
     return;
   }
