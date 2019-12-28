@@ -145,7 +145,7 @@ void do_send(osjob_t* j) {
   return;
 }
 
-void setupLoRaWAN() {
+void setup_sendLoRaWAN() {
 
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.
@@ -196,13 +196,13 @@ void setupLoRaWAN() {
   LMIC_setClockError (MAX_CLOCK_ERROR * 10 / 100);
 
   // Start job
-  //do_send(&sendjob);
+  do_send(&sendjob);
 
   // Disabling LMIC after send
   //LMIC_shutdown();
 
   // need another reset?
-  return;
+  //return;
 }
 
 void setup() {
@@ -451,10 +451,10 @@ void receivePackets() {
 void forwardPackets() {
   // da testare
   LoRa.sleep();
-  if (initOnStartup == 0){
+  /*if (initOnStartup == 0){
     setupLoRaWAN();
     initOnStartup++;
-  }
+  }*/
 
   //controllo fin quando sono nel range della rx del master per inviare i miei messaggi
   unsigned long currentMillisTX = millis();
@@ -468,10 +468,10 @@ void forwardPackets() {
       // used for repeat only one time
       if (canSendLoRaWAN == 0) {
         //for test send 2 times
-        for (int k = 0; k < 2; k++) {
+        for (int k = 0; k < 3; k++) {
           delay(1000);
           // take DHT values and send LoraWAN pkt
-          do_send(&sendjob);
+          setup_sendLoRaWAN();
           Serial.println(F("s"));
         }
         canSendLoRaWAN++;
