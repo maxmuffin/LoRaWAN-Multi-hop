@@ -33,6 +33,7 @@ int send_mode = -1;
 int initOnStartup = 0;
 int canSendLoRaWAN = 0;
 int counter = 0;
+int dimPkt = 1;
 
 //sync header
 byte idByte = 0xFF;
@@ -108,41 +109,51 @@ void do_send(osjob_t* j) {
       Serial.println(F("OP_TXRXPEND"));
     }
   } else {
-    if (initConf == 0) {
-      byte payload[2]; //on device 1 send payload[4], on device 2 payload [2]
+    if (dimPkt == 1) { //14 bytes
+      byte payload[1];
+      payload[0] = highByte(random(1, 9));
+      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
+      dimPkt++;
+    } else if (dimPkt == 2) { //15 bytes
+      byte payload[2];
       payload[0] = highByte(random(1, 9));
       payload[1] = lowByte(random(1, 9));
-
       LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-
-    } else { //take values from DHT and send it
-      float h = dht.readHumidity();
-      float t = dht.readTemperature();
-
-      // encode float as int
-      int16_t tempInt = round(t * 100);
-      int16_t humInt = round(h * 100);
-
+      dimPkt++;
+    } else if (dimPkt == 3) { //16 bytes
+      byte payload[3];
+      payload[0] = highByte(random(1, 9));
+      payload[1] = lowByte(random(1, 9));
+      payload[2] = highByte(random(1, 9));
+      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
+      dimPkt++;
+    } else if (dimPkt == 4) { //17 bytes
       byte payload[4];
-      /*
-        payload[0] = highByte(tempInt);
-        payload[1] = lowByte(tempInt);
-        payload[2] = highByte(humInt);
-        payload[3] = lowByte(humInt);*/
       payload[0] = highByte(random(1, 9));
       payload[1] = lowByte(random(1, 9));
       payload[2] = highByte(random(1, 9));
       payload[3] = lowByte(random(1, 9));
-      // need to add random values?
       LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-      if (debug == 0){
-        counter++;
-        Serial.print(counter);
-        Serial.print(',');
-        Serial.print(int(LMIC.dataLen));
-        Serial.print('\n');
-      }
+      dimPkt++;
+    } else { // 18 bytes
+      byte payload[5];
+      payload[0] = highByte(random(1, 9));
+      payload[1] = lowByte(random(1, 9));
+      payload[2] = highByte(random(1, 9));
+      payload[3] = lowByte(random(1, 9));
+      payload[4] = highByte(random(1, 9));
+      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
+      dimPkt = 1;
     }
+
+    if (debug == 0) {
+      counter++;
+      Serial.print(counter);
+      Serial.print(',');
+      Serial.print(int(LMIC.dataLen));
+      Serial.print('\n');
+    }
+
 
     if ( debug > 0 ) {
       Serial.println(F("Send pkt"));
@@ -462,7 +473,7 @@ void forwardPackets() {
   /*if (initOnStartup == 0){
     setupLoRaWAN();
     initOnStartup++;
-  }*/
+    }*/
 
   //controllo fin quando sono nel range della rx del master per inviare i miei messaggi
   unsigned long currentMillisTX = millis();

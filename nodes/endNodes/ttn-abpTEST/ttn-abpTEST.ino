@@ -42,7 +42,8 @@ static const PROGMEM u1_t NWKSKEY[16] = { 0x6D, 0x5F, 0x0F, 0xD1, 0xA6, 0x1F, 0x
 // LoRaWAN AppSKey, application session key
 static const u1_t PROGMEM APPSKEY[16] = { 0x34, 0xDC, 0x88, 0xCB, 0x1B, 0x0B, 0xE1, 0x27, 0xD6, 0xD2, 0x63, 0xD9, 0x92, 0x3C, 0x49, 0x40 };
 // LoRaWAN end-device address (DevAddr)
-static const u4_t DEVADDR = 0x26011032 ; // <-- Change this address for every node!
+static const u4_t DEVADDR = 0x26011032 ; 
+//static const u4_t DEVADDR = 0x0067295E; 
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
@@ -51,7 +52,7 @@ void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
-static uint8_t mydata[] = "16";
+static uint8_t mydata[] = "11111";
 static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty

@@ -66,7 +66,7 @@ const lmic_pinmap lmic_pins = {
   .dio = {2, 6, 7},// Specify pin numbers for DIO0, 1, 2
   // connected to D2, D6, D7
 };
-int counter = 0;
+
 
 void onEvent (ev_t ev) {
   Serial.print(os_getTime());
