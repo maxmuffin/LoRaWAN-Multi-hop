@@ -36,13 +36,11 @@
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the early prototype TTN
 // network.
-static const PROGMEM u1_t NWKSKEY[16] = { 0xDE, 0x8C, 0x1F, 0xBF, 0x1D, 0xD4, 0x69, 0x62, 0xAC, 0x90, 0xD6, 0x7C, 0x85, 0x33, 0xED, 0xDC };
+// LoRaWAN NwkSKey, network session key
+static const PROGMEM u1_t NWKSKEY[16] = { 0x6D, 0x5F, 0x0F, 0xD1, 0xA6, 0x1F, 0xAD, 0xC3, 0xEC, 0x73, 0xB1, 0xC8, 0x42, 0xB5, 0x9E, 0xD1 };
 
 // LoRaWAN AppSKey, application session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
-static const u1_t PROGMEM APPSKEY[16] = { 0xD8, 0xE0, 0x73, 0xB8, 0x12, 0x32, 0xD6, 0x7F, 0xFE, 0xF3, 0x52, 0xAD, 0x25, 0x7F, 0x20, 0x11 };
-
+static const u1_t PROGMEM APPSKEY[16] = { 0x34, 0xDC, 0x88, 0xCB, 0x1B, 0x0B, 0xE1, 0x27, 0xD6, 0xD2, 0x63, 0xD9, 0x92, 0x3C, 0x49, 0x40 };
 // LoRaWAN end-device address (DevAddr)
 static const u4_t DEVADDR = 0x26011032 ; // <-- Change this address for every node!
 
@@ -68,6 +66,7 @@ const lmic_pinmap lmic_pins = {
   .dio = {2, 6, 7},// Specify pin numbers for DIO0, 1, 2
   // connected to D2, D6, D7
 };
+int counter = 0;
 
 void onEvent (ev_t ev) {
   Serial.print(os_getTime());
@@ -103,13 +102,13 @@ void onEvent (ev_t ev) {
     case EV_TXCOMPLETE:
       Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
       if (LMIC.txrxFlags & TXRX_ACK)
-        Serial.println(F("Received ack"));
+      Serial.println(F("Received ack"));
       if (LMIC.dataLen) {
         Serial.println(F("Received "));
         Serial.println(LMIC.dataLen);
         Serial.println(F(" bytes of payload"));
       }
-      // Schedule next transmission
+      //Schedule next transmission
       os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
       break;
     case EV_LOST_TSYNC:
@@ -141,6 +140,7 @@ void do_send(osjob_t* j) {
   } else {
     // Prepare upstream data transmission at the next possible time.
     LMIC_setTxData2(1, mydata, sizeof(mydata) - 1, 0);
+
     Serial.println(F("Packet queued"));
   }
   // Next TX is scheduled after TX_COMPLETE event.
@@ -148,7 +148,7 @@ void do_send(osjob_t* j) {
 
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("Starting"));
+  //Serial.println(F("Starting"));
 
 #ifdef VCC_ENABLE
   // For Pinoccio Scout boards
@@ -210,7 +210,7 @@ void setup() {
 #endif
   LMIC_disableChannel(1);
   LMIC_disableChannel(2);
-  
+
   // Disable link check validation
   LMIC_setLinkCheckMode(0);
 

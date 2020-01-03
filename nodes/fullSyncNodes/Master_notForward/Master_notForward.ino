@@ -32,6 +32,7 @@ long lastSendTime = 0;
 int send_mode = -1;
 int initOnStartup = 0;
 int canSendLoRaWAN = 0;
+int counter = 0;
 
 //sync header
 byte idByte = 0xFF;
@@ -134,6 +135,13 @@ void do_send(osjob_t* j) {
       payload[3] = lowByte(random(1, 9));
       // need to add random values?
       LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
+      if (debug == 0){
+        counter++;
+        Serial.print(counter);
+        Serial.print(',');
+        Serial.print(int(LMIC.dataLen));
+        Serial.print('\n');
+      }
     }
 
     if ( debug > 0 ) {
