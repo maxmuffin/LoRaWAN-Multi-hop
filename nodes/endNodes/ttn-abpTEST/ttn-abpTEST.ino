@@ -32,7 +32,7 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
- 
+
 // LoRaWAN NwkSKey, network session key
 // This is the default Semtech key, which is used by the early prototype TTN
 // network.
@@ -42,8 +42,8 @@ static const PROGMEM u1_t NWKSKEY[16] = { 0x6D, 0x5F, 0x0F, 0xD1, 0xA6, 0x1F, 0x
 // LoRaWAN AppSKey, application session key
 static const u1_t PROGMEM APPSKEY[16] = { 0x34, 0xDC, 0x88, 0xCB, 0x1B, 0x0B, 0xE1, 0x27, 0xD6, 0xD2, 0x63, 0xD9, 0x92, 0x3C, 0x49, 0x40 };
 // LoRaWAN end-device address (DevAddr)
-static const u4_t DEVADDR = 0x26011032 ; 
-//static const u4_t DEVADDR = 0x0067295E; 
+static const u4_t DEVADDR = 0x26011032 ;
+//static const u4_t DEVADDR = 0x0067295E;
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
@@ -52,8 +52,9 @@ void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
 
-static uint8_t mydata[] = "11111";
+long randNumber;
 static osjob_t sendjob;
+int counter = 0;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
@@ -67,7 +68,6 @@ const lmic_pinmap lmic_pins = {
   .dio = {2, 6, 7},// Specify pin numbers for DIO0, 1, 2
   // connected to D2, D6, D7
 };
-int counter = 0;
 
 void onEvent (ev_t ev) {
   //Serial.print(os_getTime());
@@ -104,11 +104,11 @@ void onEvent (ev_t ev) {
       //Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
       if (LMIC.txrxFlags & TXRX_ACK)
         //Serial.println(F("Received ack"));
-      if (LMIC.dataLen) {
-        //Serial.println(F("Received "));
-        //Serial.println(LMIC.dataLen);
-        //Serial.println(F(" bytes of payload"));
-      }
+        if (LMIC.dataLen) {
+          //Serial.println(F("Received "));
+          //Serial.println(LMIC.dataLen);
+          //Serial.println(F(" bytes of payload"));
+        }
       // Schedule next transmission
       os_setTimedCallback(&sendjob, os_getTime() + sec2osticks(TX_INTERVAL), do_send);
       break;
@@ -140,33 +140,62 @@ void do_send(osjob_t* j) {
     //Serial.println(F("OP_TXRXPEND, not sending"));
   } else {
     // Prepare upstream data transmission at the next possible time.
-    LMIC_setTxData2(1, mydata, sizeof(mydata) - 1, 0);
-    // Start job
-    
+
+    randNumber = random(9999);
+
+    if (randNumber < 10) {
+      randNumber = randNumber * 1000;
+    } else if (randNumber < 100) {
+      randNumber = randNumber * 100;
+    } else if (randNumber < 1000) {
+      randNumber = randNumber * 10;
+    }
+
+
+    char payload[4];
+    dtostrf(randNumber, 4, 0, payload);
+
+    LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
+
     counter++;
     Serial.print(counter);
     Serial.print(',');
     Serial.print(int(LMIC.dataLen));
+    Serial.print(',');
+    if (LMIC.dataLen) {
+      // data received in rx slot after tx
+      for (int i = 0; i < LMIC.dataLen; i++) {
+        if (LMIC.frame[LMIC.dataBeg + i] < 0x10) {
+          Serial.print(F("0"));
+
+        }
+        Serial.print(LMIC.frame[LMIC.dataBeg + i], HEX);
+      }
+
+    }
+
     Serial.print('\n');
-    
+
     //Serial.println(F("Packet queued"));
   }
- 
+
   // Next TX is scheduled after TX_COMPLETE event.
+
 }
 
 void setup() {
   Serial.begin(9600);
   //Serial.println(F("Starting"));
-  
+  randomSeed(analogRead(0));
+
 #ifdef VCC_ENABLE
   // For Pinoccio Scout boards
   pinMode(VCC_ENABLE, OUTPUT);
   digitalWrite(VCC_ENABLE, HIGH);
   delay(1000);
 #endif
-  
-    
+
+
   // LMIC init
   os_init();
   // Reset the MAC state. Session and pending data transfers will be discarded.

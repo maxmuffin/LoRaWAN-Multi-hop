@@ -17,7 +17,7 @@ char myDeviceAddress [8] = "2611032\0";  // device 1
 //char myDeviceAddress [8] = "067295e\0"; // device 2
 //Set Debug = 1 to enable Output;
 // -1 to debug synchronization
-const int debug = -1;
+const int debug = 0;
 
 int synched = 0;
 int SyncInterval = 10000;
@@ -32,8 +32,9 @@ long lastSendTime = 0;
 int send_mode = -1;
 int initOnStartup = 0;
 int canSendLoRaWAN = 0;
+
 int counter = 0;
-int dimPkt = 1;
+long randNumber;
 
 //sync header
 byte idByte = 0xFF;
@@ -109,58 +110,48 @@ void do_send(osjob_t* j) {
       Serial.println(F("OP_TXRXPEND"));
     }
   } else {
-    if (dimPkt == 1) { //14 bytes
-      byte payload[1];
-      payload[0] = highByte(random(1, 9));
-      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-      dimPkt++;
-    } else if (dimPkt == 2) { //15 bytes
-      byte payload[2];
-      payload[0] = highByte(random(1, 9));
-      payload[1] = lowByte(random(1, 9));
-      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-      dimPkt++;
-    } else if (dimPkt == 3) { //16 bytes
-      byte payload[3];
-      payload[0] = highByte(random(1, 9));
-      payload[1] = lowByte(random(1, 9));
-      payload[2] = highByte(random(1, 9));
-      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-      dimPkt++;
-    } else if (dimPkt == 4) { //17 bytes
-      byte payload[4];
-      payload[0] = highByte(random(1, 9));
-      payload[1] = lowByte(random(1, 9));
-      payload[2] = highByte(random(1, 9));
-      payload[3] = lowByte(random(1, 9));
-      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-      dimPkt++;
-    } else { // 18 bytes
-      byte payload[5];
-      payload[0] = highByte(random(1, 9));
-      payload[1] = lowByte(random(1, 9));
-      payload[2] = highByte(random(1, 9));
-      payload[3] = lowByte(random(1, 9));
-      payload[4] = highByte(random(1, 9));
-      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-      dimPkt = 1;
-    }
+    randNumber = random(9999);
 
-    if (debug == 0) {
-      counter++;
-      Serial.print(counter);
-      Serial.print(',');
-      Serial.print(int(LMIC.dataLen));
-      Serial.print('\n');
+    if (randNumber < 10) {
+      randNumber = randNumber * 1000;
+    } else if (randNumber < 100) {
+      randNumber = randNumber * 100;
+    } else if (randNumber < 1000) {
+      randNumber = randNumber * 10;
     }
+    char payload[4];
+    dtostrf(randNumber, 4, 0, payload);
 
-
-    if ( debug > 0 ) {
-      Serial.println(F("Send pkt"));
-    }
-    //Serial.print(F("Send on freq: "));
-    //Serial.println(LMIC.freq);
+    LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
   }
+
+  if (debug == 0) {
+    counter++;
+    Serial.print(counter);
+    Serial.print(',');
+    Serial.print(int(LMIC.dataLen));
+    Serial.print(',');
+    if (LMIC.dataLen) {
+      // data received in rx slot after tx
+      for (int i = 0; i < LMIC.dataLen; i++) {
+        if (LMIC.frame[LMIC.dataBeg + i] < 0x10) {
+          Serial.print(F("0"));
+
+        }
+        Serial.print(LMIC.frame[LMIC.dataBeg + i], HEX);
+      }
+
+    }
+    Serial.print('\n');
+  }
+
+
+  if ( debug > 0 ) {
+    Serial.println(F("Send pkt"));
+  }
+  //Serial.print(F("Send on freq: "));
+  //Serial.println(LMIC.freq);
+
   return;
 }
 
@@ -226,6 +217,8 @@ void setup_sendLoRaWAN() {
 
 void setup() {
   Serial.begin(9600);
+
+  randomSeed(analogRead(0));
 
   // if i'm master set tx and rx interval
   if (initConf == 1 ) {

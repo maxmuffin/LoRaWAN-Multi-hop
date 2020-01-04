@@ -24,7 +24,6 @@ bool swapRX_TXFreq = false;
 // used for change frequencies after transmission
 bool changeFreq = false;
 
-int bufferSize = 3;
 
 static float freq, txfreq;
 static int SF, CR, txsf;
@@ -52,9 +51,9 @@ void showPreviousMessages();
     Mode 2 = send/forward received packet
 *********** */
 
-static uint8_t packet[256]; // current received packet
-static uint8_t message[256]; //used for send message
-static uint8_t previous_packet[256];
+static uint8_t packet[30]; // current received packet
+static uint8_t message[30]; //used for send message
+static uint8_t previous_packet[30];
 
 static int send_mode = 0; /* define mode default receive mode */
 
@@ -63,16 +62,11 @@ const int debug = 1;
 static int packetSize;
 int receivedCount = 0;
 
+const byte rowBuffer = 5;
+const byte dimBuffer = 20;
 
 // buffer for previous received and send message
-int bufferMatrix[3][15] = {
-  {0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-
-  {0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-
-  {0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
-
-};
+int bufferMatrix[rowBuffer][dimBuffer];
 
 //********************************* LORAWAN
 
@@ -215,6 +209,7 @@ void setup_sendLoRaWAN() {
 void setup()
 {
   Serial.begin(9600);
+  initBuffer();
   startTime = millis();
 
   //setup of radio configuration for relay
@@ -434,7 +429,7 @@ void receivePacket() {
       char devaddr[12] = {'\0'};
 
       sprintf(devaddr, "%x%x%x%x", message[4], message[3], message[2], message[1]);
-      
+
       if (strlen(devaddr) > 8) {
         for (i = 0; i < strlen(devaddr) - 2; i++) {
           devaddr[i] = devaddr[i + 2];
@@ -493,8 +488,8 @@ void receivePacket() {
 void copyMessage() {
   int i = 0, j = 0;
 
-  while (i <= 15) {
-    bufferMatrix[receivedCount % bufferSize][i] = packet[i];
+  while (i <= dimBuffer) {
+    bufferMatrix[receivedCount % rowBuffer][i] = packet[i];
     i++;
   }
 
@@ -503,9 +498,9 @@ void copyMessage() {
 // Print previous messages into buffer
 void showPreviousMessages() {
   Serial.println(F("Buffer: "));
-  for (int i = 0; i < bufferSize; i++) {
+  for (int i = 0; i < rowBuffer; i++) {
     Serial.print(F("["));
-    for (int j = 0; j <= 15; j++) {
+    for (int j = 0; j <= dimBuffer; j++) {
       Serial.print(bufferMatrix[i][j], HEX);
       Serial.print(F(" "));
     }
@@ -522,8 +517,8 @@ void checkPreviousPacket() {
 
   int equal1 = 0, equal2 = 0, equal3 = 0;
   showPreviousMessages();
-  for (int i = 0; i < bufferSize; i++) {
-    for (int j = 0; j <= 15; j++) {
+  for (int i = 0; i < rowBuffer; i++) {
+    for (int j = 0; j <= dimBuffer; j++) {
       if (bufferMatrix[i][j] == message[j]) {
         if (i == 0) {
           equal1++;
@@ -625,6 +620,20 @@ void forwardPacket() {
       }*/
   }
 
+}
+
+void initBuffer() {
+
+  for (int i = 0; i < rowBuffer; i++) {
+    for (int j = 0; j <= dimBuffer; j++) {
+      bufferMatrix[i][j] = '0';
+    }
+
+  }
+
+  if (debug > 0) {
+    Serial.println(F("reset fwdB"));
+  }
 }
 
 /*

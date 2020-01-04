@@ -4,7 +4,7 @@ import datetime
 import uuid
 import time
 import os
-import datetime
+import codecs
 
 # linux port
 port1 = 'COM10'
@@ -17,7 +17,7 @@ unique_filename = opMode+"_"+str(uuid.uuid4())+".csv"
 
 with open("data/{}".format(unique_filename), 'w', newline='') as csvfile:
     filewriter = csv.writer(csvfile, delimiter=',')
-    filewriter.writerow(['pktCounter', 'bytes', 'timestamp'])
+    filewriter.writerow(['pktCounter', 'bytes', 'frame', 'base64', 'FRM Payload', 'timestamp'])
     startTime = datetime.datetime.now()
     # read relevations from Arduino
     ser = serial.Serial(port1, serial_speed)
@@ -32,11 +32,20 @@ with open("data/{}".format(unique_filename), 'w', newline='') as csvfile:
         data = decodedSer.split(",")
 
         equalizedData = []
+        index = 0
 
         for temp in data:
             try:
                 tmp = temp.replace("\n","")
-                equalizedData.append(tmp)
+                if index == 2:
+                    hex = tmp
+                    b64 = codecs.encode(codecs.decode(hex, 'hex'), 'base64').decode().replace("\n","")
+                    equalizedData.append(tmp)
+                    equalizedData.append(b64)
+                    equalizedData.append(b64[12:17])
+                else:
+                    equalizedData.append(tmp)
+                index+=1
             except ValueError:
                 saveRow = False
                 print("Discard Row")
