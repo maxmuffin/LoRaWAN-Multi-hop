@@ -130,11 +130,17 @@ void do_send(osjob_t* j) {
       Serial.println(F("OP_TXRXPEND"));
     }
   } else {
-    byte payload[4]; //on device 1 send payload[4], on device 2 payload [2]
-    payload[0] = highByte(random(1, 9));
-    payload[1] = lowByte(random(1, 9));
-    payload[2] = highByte(random(1, 9));
-    payload[3] = lowByte(random(1, 9));
+    randNumber = random(9999);
+
+    if (randNumber < 10) {
+      randNumber = randNumber * 1000;
+    } else if (randNumber < 100) {
+      randNumber = randNumber * 100;
+    } else if (randNumber < 1000) {
+      randNumber = randNumber * 10;
+    }
+    char payload[4];
+    dtostrf(randNumber, 4, 0, payload);
 
     LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
     if ( debug > 0) {
@@ -209,6 +215,8 @@ void setup_sendLoRaWAN() {
 void setup()
 {
   Serial.begin(9600);
+  randomSeed(analogRead(0));
+
   initBuffer();
   startTime = millis();
 

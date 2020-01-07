@@ -21,7 +21,7 @@ with open("data/{}".format(unique_filename), 'w', newline='') as csvfile:
     startTime = datetime.datetime.now()
     # read relevations from Arduino
     ser = serial.Serial(port1, serial_speed)
-    for i in range(0,20):
+    for i in range(0,102):
 
         saveRow = True
 
