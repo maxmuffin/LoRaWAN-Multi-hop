@@ -17,11 +17,11 @@ unique_filename = opMode+"_"+str(uuid.uuid4())+".csv"
 
 with open("data/{}".format(unique_filename), 'w', newline='') as csvfile:
     filewriter = csv.writer(csvfile, delimiter=',')
-    filewriter.writerow(['pktCounter', 'bytes', 'frame', 'base64', 'FRM Payload', 'timestamp'])
+    filewriter.writerow(['pktCounter', 'bytes', 'frame', 'base64', 'FRM Payload', 'timestamp_TX'])
     startTime = datetime.datetime.now()
     # read relevations from Arduino
     ser = serial.Serial(port1, serial_speed)
-    for i in range(0,102):
+    for i in range(0,15): #15 * 7 times for SyncTest, 102 for End and Forward Test
 
         saveRow = True
 

@@ -879,7 +879,7 @@ void forwardPackets() {
         for (int k = 0; k < 2; k++) {
           delay(1000);
           setup_sendLoRaWAN();
-          Serial.println(F("s"));
+          Serial.println(F("send LW"));
         }
         canSendLoRaWAN++;
       }

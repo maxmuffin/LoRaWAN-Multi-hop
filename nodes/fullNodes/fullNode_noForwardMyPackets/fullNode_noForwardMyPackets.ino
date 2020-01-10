@@ -61,6 +61,7 @@ static int send_mode = 0; /* define mode default receive mode */
 const int debug = 1;
 static int packetSize;
 int receivedCount = 0;
+long randNumber;
 
 const byte rowBuffer = 5;
 const byte dimBuffer = 20;
