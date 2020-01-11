@@ -27,7 +27,7 @@ def intervalliConfidenza(mean, list, devS, interval = 0.95):
 
     return errore_standard, marginError, upper_margin, lower_margin
 
-with open(filename+'.csv','r') as csvinput:
+with open('data/csvDivisi/'filename+'.csv','r') as csvinput:
     csv_file = csv.reader(csvinput)
     next(csv_file, None)
     timeList = []
@@ -73,7 +73,7 @@ with open(filename+'.csv','r') as csvinput:
     data.append(got)
     data.append(loss)
     data.append(tot)
-    data.append(str(PDR)[:5])
+    data.append(str(PDR)[:5]) # modify to 6
     data.append(floatAvg)
     data.append(floatDevStd)
     data.append(stdErr)

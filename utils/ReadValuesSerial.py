@@ -15,7 +15,7 @@ opMode = str(input("Inserisci la modalità di utilizzo: "))
 
 unique_filename = opMode+"_"+str(uuid.uuid4())+".csv"
 
-with open("data/{}".format(unique_filename), 'w', newline='') as csvfile:
+with open("data/acquiredData/{}".format(unique_filename), 'w', newline='') as csvfile:
     filewriter = csv.writer(csvfile, delimiter=',')
     filewriter.writerow(['pktCounter', 'bytes', 'frame', 'base64', 'FRM Payload', 'timestamp_TX'])
     startTime = datetime.datetime.now()
