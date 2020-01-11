@@ -2,27 +2,29 @@ import csv
 import datetime
 import pandas as pd
 import math
-import scipy as sp
-import scipy.stats
+import xlsxwriter
 
 
-ok = 0
-empty = 0
-filename = 'Test1'
+
+got = 0
+loss = 0
+filename = 'Test3'
 
 date0 = '00:00:00.000000'
 dateZero = datetime.datetime.strptime(date0, "%H:%M:%S.%f")
 
-def confidenceInterval(mean, list, devS, interval = 0.95, method = 't'):
-  mean_val = mean
-  n = len(list)
-  stdev = devS
-  if method == 't':
-    test_stat = sp.stats.t.ppf((interval + 1)/2, n)
-  elif method == 'z':
-    test_stat = sp.stats.norm.ppf((interval + 1)/2)
-  print(lower_bound = mean_val - test_stat * stdev / math.sqrt(n))
-  print(upper_bound = mean_val + test_stat * stdev / math.sqrt(n))
+def intervalliConfidenza(mean, list, devS, interval = 0.95):
+    mean_val = mean
+    n = len(list)
+    stdev = devS
+    errore_standard = stdev/(math.sqrt(n))
+    print("Errore standard:\t"+str(errore_standard))
+    marginError = 1.96 * errore_standard
+    print("Margine Errore:\t"+str(marginError))
+    upper_margin = mean_val + marginError
+    lower_margin = mean_val - marginError
+    print("intervalli: \t+"+ str(upper_margin)+" \t"+str(mean_val)+"\t -"+str(lower_margin))
+    return errore_standard, marginError, upper_margin, lower_margin
 
 with open(filename+'.csv','r') as csvinput:
     #with open('output'+filename+'.csv', 'a') as csvoutput:
@@ -39,12 +41,13 @@ with open(filename+'.csv','r') as csvinput:
             print(s1)
             timeList.append(s1)
 
-            ok+=1
+            got+=1
         else:
-            empty+=1
+            loss+=1
 
-        tot = ok + empty
-    print("Got pkt:"+ str(ok) + " Lost pkt:" +str(empty) + " Tot:" + str(tot) )
+        tot = got + loss
+    PDR = (got/tot)*100
+    print("Got pkt:"+ str(got) + " Lost pkt:" +str(loss) + " Tot:" + str(tot)+ "\t PDR:"+ str(PDR)[:5]+"%")
 
     timeAVG = str(pd.Series(pd.to_timedelta(timeList)).mean())
     secondsAVG = timeAVG[13:15]
@@ -56,9 +59,51 @@ with open(filename+'.csv','r') as csvinput:
     secondsDevStd = devStd[13:15]
     nanosecDevStd = devStd[16:]
     StandardDeviation = secondsDevStd +"."+nanosecDevStd
-    flotDevStd = float(StandardDeviation)
+    floatDevStd = float(StandardDeviation)
 
-    confidenceInterval(floatAvg, timeList, flotDevStd)
+    stdErr, marginErr, upMargin, lowMargin = intervalliConfidenza(floatAvg, timeList, floatDevStd)
 
     print("Average time:\t\t"+ str(floatAvg)+"s")
-    print("Standard Deviation:\t" +str(flotDevStd))
+    print("Standard Deviation:\t" +str(floatDevStd))
+    data = []
+    data.append(filename)
+    data.append(got)
+    data.append(loss)
+    data.append(tot)
+    data.append(str(PDR)[:5])
+    data.append(floatAvg)
+    data.append(floatDevStd)
+    data.append(stdErr)
+    data.append(marginErr)
+    data.append(upMargin)
+    data.append(lowMargin)
+
+workbook = xlsxwriter.Workbook(filename+'.xlsx')
+worksheet = workbook.add_worksheet()
+
+# Start from the first cell.
+# Rows and columns are zero indexed.
+row = 0
+column = 0
+
+header = ["Test", "gotPkt", "lossPkt", "totPkt", "PDR(%)","mean", "StdDev", "StdErr",
+                    "marginErr95", "upMargin", "lowMargin"]
+
+# iterating through content list
+for item in header :
+
+    # write operation perform
+    worksheet.write(row, column, item)
+
+    # incrementing the value of row by one
+    # with each iteratons.
+    column += 1
+
+row = 1
+column = 0
+for item in data:
+
+    worksheet.write(row, column, item)
+
+    column +=1
+workbook.close()
