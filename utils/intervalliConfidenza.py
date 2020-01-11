@@ -18,27 +18,22 @@ def intervalliConfidenza(mean, list, devS, interval = 0.95):
     n = len(list)
     stdev = devS
     errore_standard = stdev/(math.sqrt(n))
-    print("Errore standard:\t"+str(errore_standard))
     marginError = 1.96 * errore_standard
-    print("Margine Errore:\t"+str(marginError))
     upper_margin = mean_val + marginError
     lower_margin = mean_val - marginError
-    print("intervalli: \t+"+ str(upper_margin)+" \t"+str(mean_val)+"\t -"+str(lower_margin))
+
     return errore_standard, marginError, upper_margin, lower_margin
 
 with open(filename+'.csv','r') as csvinput:
-    #with open('output'+filename+'.csv', 'a') as csvoutput:
-    #writer = csv.writer(csvoutput)
     csv_file = csv.reader(csvinput)
     next(csv_file, None)
     timeList = []
     for row in csv_file:
         delay = datetime.datetime.strptime(row[7], '%H:%M:%S.%f')
         if delay != dateZero:
-            #timestamp = datetime.timestamp(delay)
             stringa = str(delay)
             s1 = stringa[11:]
-            print(s1)
+            #print(s1)
             timeList.append(s1)
 
             got+=1
@@ -63,8 +58,12 @@ with open(filename+'.csv','r') as csvinput:
 
     stdErr, marginErr, upMargin, lowMargin = intervalliConfidenza(floatAvg, timeList, floatDevStd)
 
-    print("Average time:\t\t"+ str(floatAvg)+"s")
+    print("Average time:\t\t"+ str(floatAvg)+"s\n")
     print("Standard Deviation:\t" +str(floatDevStd))
+    print("Errore standard:\t"+str(stdErr))
+    print("Margine Errore:\t"+str(marginErr))
+    print("intervalli: \t+"+ str(upMargin)+" \t"+str(floatAvg)+"\t -"+str(lowMargin))
+
     data = []
     data.append(filename)
     data.append(got)
@@ -78,32 +77,24 @@ with open(filename+'.csv','r') as csvinput:
     data.append(upMargin)
     data.append(lowMargin)
 
+# Create File and Save data on it
 workbook = xlsxwriter.Workbook(filename+'.xlsx')
 worksheet = workbook.add_worksheet()
 
-# Start from the first cell.
-# Rows and columns are zero indexed.
 row = 0
 column = 0
-
 header = ["Test", "gotPkt", "lossPkt", "totPkt", "PDR(%)","mean", "StdDev", "StdErr",
                     "marginErr95", "upMargin", "lowMargin"]
-
-# iterating through content list
+# Write Header
 for item in header :
-
-    # write operation perform
     worksheet.write(row, column, item)
-
-    # incrementing the value of row by one
-    # with each iteratons.
     column += 1
 
 row = 1
 column = 0
+# Write data
 for item in data:
-
     worksheet.write(row, column, item)
-
     column +=1
+
 workbook.close()
