@@ -8,7 +8,10 @@ import xlsxwriter
 
 got = 0
 loss = 0
-filename = 'Test3'
+test = input("Inserisci numero Test (1 - 3): ")
+run = input("Inserisci numero Run (1 - 9): ")
+
+filename = 'Test'+test+'Diviso - Run'+run
 
 date0 = '00:00:00.000000'
 dateZero = datetime.datetime.strptime(date0, "%H:%M:%S.%f")
@@ -51,6 +54,7 @@ with open(filename+'.csv','r') as csvinput:
     floatAvg = float(averageTime)
 
     devStd = str(pd.Series(pd.to_timedelta(timeList)).std())
+    print(devStd)
     secondsDevStd = devStd[13:15]
     nanosecDevStd = devStd[16:]
     StandardDeviation = secondsDevStd +"."+nanosecDevStd
@@ -65,7 +69,7 @@ with open(filename+'.csv','r') as csvinput:
     print("intervalli: \t+"+ str(upMargin)+" \t"+str(floatAvg)+"\t -"+str(lowMargin))
 
     data = []
-    data.append(filename)
+    data.append(test+" - "+run)
     data.append(got)
     data.append(loss)
     data.append(tot)
@@ -78,12 +82,12 @@ with open(filename+'.csv','r') as csvinput:
     data.append(lowMargin)
 
 # Create File and Save data on it
-workbook = xlsxwriter.Workbook(filename+'.xlsx')
+workbook = xlsxwriter.Workbook('data/xslx/' + filename + '.xlsx')
 worksheet = workbook.add_worksheet()
 
 row = 0
 column = 0
-header = ["Test", "gotPkt", "lossPkt", "totPkt", "PDR(%)","mean", "StdDev", "StdErr",
+header = ["Test - Run", "gotPkt", "lossPkt", "totPkt", "PDR(%)","mean", "StdDev", "StdErr",
                     "marginErr95", "upMargin", "lowMargin"]
 # Write Header
 for item in header :
