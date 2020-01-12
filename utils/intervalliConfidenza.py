@@ -4,13 +4,11 @@ import pandas as pd
 import math
 import xlsxwriter
 
-
-
 got = 0
 loss = 0
+
 test = input("Inserisci numero Test (1 - 3): ")
 run = input("Inserisci numero Run (1 - 9): ")
-
 filename = 'Test'+test+'Diviso - Run'+run
 
 date0 = '00:00:00.000000'
@@ -27,17 +25,16 @@ def intervalliConfidenza(mean, list, devS, interval = 0.95):
 
     return errore_standard, marginError, upper_margin, lower_margin
 
-with open('data/csvDivisi/'filename+'.csv','r') as csvinput:
+with open('data/csvDivisi/'+filename+'.csv','r') as csvinput:
     csv_file = csv.reader(csvinput)
     next(csv_file, None)
     timeList = []
     for row in csv_file:
         delay = datetime.datetime.strptime(row[7], '%H:%M:%S.%f')
         if delay != dateZero:
-            stringa = str(delay)
-            s1 = stringa[11:]
-            #print(s1)
-            timeList.append(s1)
+            delayString = str(delay)
+            formattedDelay = delayString[11:]
+            timeList.append(formattedDelay)
 
             got+=1
         else:
@@ -54,7 +51,7 @@ with open('data/csvDivisi/'filename+'.csv','r') as csvinput:
     floatAvg = float(averageTime)
 
     devStd = str(pd.Series(pd.to_timedelta(timeList)).std())
-    print(devStd)
+    #print(devStd)
     secondsDevStd = devStd[13:15]
     nanosecDevStd = devStd[16:]
     StandardDeviation = secondsDevStd +"."+nanosecDevStd
@@ -73,7 +70,7 @@ with open('data/csvDivisi/'filename+'.csv','r') as csvinput:
     data.append(got)
     data.append(loss)
     data.append(tot)
-    data.append(str(PDR)[:5]) # modify to 6
+    data.append(PDR) # modify to 6
     data.append(floatAvg)
     data.append(floatDevStd)
     data.append(stdErr)

@@ -1,40 +1,67 @@
 import csv
 import datetime
 
+got = 0
+loss = 0
 
-i = 0
-j = 0
-filename = 'Test2RelayCleanedData'
+filename = 'Test2Relay - Foglio3'
 with open(filename+'.csv','r') as csvinput:
-    with open('output'+filename+'.csv', 'a') as csvoutput:
+    with open('output'+filename+'.csv', 'w') as csvoutput:
         writer = csv.writer(csvoutput)
         csv_file = csv.reader(csvinput)
-        next(csv_file, None)
 
-        differenceTime = []
+        header = next(csv_file)
+
+        cleanedData = []
+        header.append("delay RX-TX")
+        writer.writerow(header)
 
         for row in csv_file:
+            cleanedData.append(row[0])
+            cleanedData.append(row[1])
+            cleanedData.append(row[2])
+            cleanedData.append(row[3])
+            cleanedData.append(row[4])
             try:
                 dateTX = datetime.datetime.strptime(row[5], '%Y-%m-%dT%H:%M:%S.%f')
-                dateRX = datetime.datetime.strptime(row[6], '%Y-%m-%dT%H:%M:%S.%f')
-                delta = dateRX - dateTX
 
-                print(str(delta))
-                i+=1
+                if len(row[6]) > 26: #for cut javascript datetime and standardize with python datetime
+                    javascriptDatetime = row[6]
+                    correctDatetime = javascriptDatetime[:26]
+                    dateRX = datetime.datetime.strptime(correctDatetime, '%Y-%m-%dT%H:%M:%S.%f')
+                else:
+                    dateRX = datetime.datetime.strptime(row[6], '%Y-%m-%dT%H:%M:%S.%f')
 
-                diff= str(delta) + "\n"
-                differenceTime.append(diff)
+                if dateRX < dateTX:
+                    row[5] = dateRX
+                    row[6] = dateTX
+                    delta = dateTX - dateRX
+
+                else:
+                    row[5] = dateTX
+                    row[6] = dateRX
+                    delta = dateRX - dateTX
+
+                #print(str(delta))
+                got +=1
+
+                diff= str(delta)+ '\n'
+                cleanedData.append(row[5])
+                cleanedData.append(row[6])
+                cleanedData.append(diff)
 
             except:
 
                 diff = '0:00:00.000000\n'
-                differenceTime.append(diff)
+                cleanedData.append(row[5])
+                cleanedData.append(row[6])
+                cleanedData.append(diff)
                 print(diff)
-                j+=1
+                loss +=1
                 continue
 
-        k = i + j
-        print("Got pkt:"+ str(i) + " Lost pkt:" +str(j) + " Tot:" + str(k) )
-        writer.writerow(differenceTime)
+        tot = got + loss
+        print("Got pkt:"+ str(got) + " Lost pkt:" +str(loss) + " Tot:" + str(tot) )
+        writer.writerow(cleanedData)
 
 csvoutput.close()

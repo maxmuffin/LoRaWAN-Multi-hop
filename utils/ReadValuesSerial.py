@@ -51,7 +51,7 @@ with open("data/acquiredData/{}".format(unique_filename), 'w', newline='') as cs
                 print("Discard Row")
 
 
-        date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
+        date = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         equalizedData.append(date)
 
         if saveRow:
@@ -64,13 +64,4 @@ with open("data/acquiredData/{}".format(unique_filename), 'w', newline='') as cs
     endTime = datetime.datetime.now()
     delta = endTime - startTime
 
-    '''
-    correct = input("Correct measurement? [Y/n]: ")
-    if correct in ["Y","y",""] :
-        print("Measurement keeped in time: "+ str(delta))
-
-    else:
-        os.remove("data/{}".format(unique_filename))
-        print("Measurement discarded")
-    '''
     print("Measurements keeped in time: "+ str(delta))
