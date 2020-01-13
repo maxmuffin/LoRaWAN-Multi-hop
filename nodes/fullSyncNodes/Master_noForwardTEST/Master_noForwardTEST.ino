@@ -481,7 +481,7 @@ void forwardPackets() {
       if (canSendLoRaWAN == 0) {
         //for test send 2 times
         for (int k = 0; k < 3; k++) {
-          delay(1000);
+          delay(100); //inizialmente era 1000
           // take DHT values and send LoraWAN pkt
           setup_sendLoRaWAN();
           //Serial.println(F("s"));

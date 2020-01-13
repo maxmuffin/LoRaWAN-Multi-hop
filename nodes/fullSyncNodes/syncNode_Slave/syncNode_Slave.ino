@@ -838,7 +838,7 @@ void forwardPackets() {
             LoRa.setFrequency(txfreq);
             //LoRa.setSpreadingFactor(txfreq);
 
-            delay(1000);
+            delay(100); //inizialmente era 1000
 
             if (dimRcvMess[i] > 0 ) { //invia solo quelli maggiori di 0
 
@@ -860,7 +860,7 @@ void forwardPackets() {
             }
 
           } else {
-            delay(1000);
+            delay(100); //inizialmente era 1000
             if (debug > 0 || debug < 0) {
               Serial.println(F("Jump"));
             }
@@ -877,7 +877,7 @@ void forwardPackets() {
 
         //for test send 2 times
         for (int k = 0; k < 2; k++) {
-          delay(1000);
+          delay(100); //inizialmente era 1000
           setup_sendLoRaWAN();
           Serial.println(F("send LW"));
         }

@@ -58,7 +58,7 @@ int counter = 0;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 10;
+const unsigned TX_INTERVAL = 10; //5, 20
 
 // Pin mapping<br>
 const lmic_pinmap lmic_pins = {

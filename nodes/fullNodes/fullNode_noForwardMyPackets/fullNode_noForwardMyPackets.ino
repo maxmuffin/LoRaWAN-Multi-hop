@@ -7,7 +7,7 @@
 
 unsigned long startTime;
 unsigned long currentTime;
-const unsigned long interval = 20000UL; // 20 seconds of relay than switch to end-node
+const unsigned long interval = 30000UL; // 30 seconds of relay than switch to end-node
 const long sendpkt_interval = 5000;  // 5 seconds for replay received message --> forward message every t seconds.
 unsigned long previousMillis = millis();
 
@@ -243,7 +243,7 @@ void set_relay_config() {
   if (!LoRa.begin(freq))
     if ( debug > 0 ) Serial.println(F("init LoRa failed"));
   setLoRaRadio();// Set LoRa Radio to Semtech Chip
-  delay(500);
+  delay(50); //inizialmente era 500
 }
 
 void loop() {
@@ -267,7 +267,7 @@ void loop() {
     }
     setup_sendLoRaWAN();
 
-    delay(500);
+    delay(100); //inizialmente era 500
     if ( debug > 0 ) {
       Serial.println(F("\nReset LMIC"));
     }
@@ -611,8 +611,9 @@ void forwardPacket() {
       checkFrequency();
     }
 
-    delay(100);
-    Serial.println(F("FWD pkt"));
+    delay(50); //inizialmente era 100
+    Serial.print(F("FWD pkt Transmission N°:"));
+    Serial.println(receivedCount);
     /*if (debug > 0) {
       //Serial.print(F("[transmit] Packet forwarded successfully."));
       Serial.print(F("\tTransmission n°: "));
