@@ -9,7 +9,8 @@ loss = 0
 
 test = input("Inserisci numero Test (1 - 3): ")
 delay = input("Inserisci il delay [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: ")
-filename = 'latencyTest'+test+'Delay'+delay+'ms'
+name = 'Test'+test+'_'+delay+'ms'
+filename = 'latency'+name
 
 
 date0 = '0:00:00.000000'
@@ -82,7 +83,7 @@ with open('data/'+filename+'.csv','r') as csvinput:
     data.append(lowMargin)
 
 # Create File and Save data on it
-workbook = xlsxwriter.Workbook('data/xslx/' + filename + '.xlsx')
+workbook = xlsxwriter.Workbook('data/intervalliConfidenza/CI_' + filename + '.xlsx')
 worksheet = workbook.add_worksheet()
 
 row = 0

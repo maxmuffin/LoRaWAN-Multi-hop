@@ -5,7 +5,7 @@
 
 unsigned long startTime;
 unsigned long currentTime;
-const long interval = 300; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+const long interval = 1000; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
 
 const int debug = 1;
 

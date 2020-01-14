@@ -4,7 +4,7 @@ import datetime
 got = 0
 loss = 0
 
-filename = 'Test3Delay1000ms'
+filename = 'Test1_750ms'
 with open('data/'+filename+'.csv','r') as csvinput:
     with open('data/latency'+filename+'.csv', 'w') as csvoutput:
         writer = csv.writer(csvoutput)
