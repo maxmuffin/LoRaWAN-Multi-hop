@@ -11,18 +11,19 @@ port1 = 'COM10'
 
 serial_speed = 9600
 
-opMode = str(input("Inserisci la modalità di utilizzo: "))
+opMode = str(input("Inserisci il numero del Test: "))
+delayTime = str(input("Inserisci il delay del test [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: "))
 
-unique_filename = opMode+"_"+str(uuid.uuid4())+".csv"
+unique_filename = opMode+"_"+delayTime+"_"+str(uuid.uuid4())+".csv"
 
-with open("data/acquiredData/{}".format(unique_filename), 'w', newline='') as csvfile:
+with open("data/acquiredData/Test"+opMode+"/Delay"+delayTime+"ms/{}".format(unique_filename), 'w', newline='') as csvfile:
     filewriter = csv.writer(csvfile, delimiter=',')
     filewriter.writerow(['pktCounter', 'bytes', 'frame', 'base64', 'FRM Payload', 'timestamp_TX'])
     startTime = datetime.datetime.now()
     # read relevations from Arduino
     ser = serial.Serial(port1, serial_speed)
-    for i in range(0,15): #15 * 7 times for SyncTest, 102 for End and Forward Test
-
+    for i in range(0,108): #15 * 7 times for SyncTest, 102 for End and Forward Test
+        # FOR SYNC 3 TIMES 36
         saveRow = True
 
         inputSer = ser.readline()

@@ -21,6 +21,9 @@ const int debug = -1;
 
 int synched = 0;
 int SyncInterval = 10000;
+
+int pktSendDelay = 300; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+int delayForSendLW = 500;
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 
 unsigned long currentTime, previousMillis, startTime;
@@ -576,7 +579,7 @@ void receivePackets() {
     // prossimo inizio ricezione
     RXmode_startTime = currentMillisRX + RTT;
     if (debug < 0) {
-      Serial.println(F("wait 10s"));
+      Serial.println(F("sleepMode"));
     }
 
     send_mode = 4;
@@ -682,7 +685,11 @@ void listenOnRF(int pSize) {
       // Increment received packet count
       receivedCount++;
       if (debug < 0) {
-        Serial.println(F("Analize"));
+        if(receivedCount ==1){
+          Serial.println(F("Analize"));
+        }else{
+          Serial.print(F("Analize\t"));
+        }
       }
       send_mode = 1;
       return;
@@ -838,7 +845,7 @@ void forwardPackets() {
             LoRa.setFrequency(txfreq);
             //LoRa.setSpreadingFactor(txfreq);
 
-            delay(100); //inizialmente era 1000
+            delay(pktSendDelay); //inizialmente era 1000
 
             if (dimRcvMess[i] > 0 ) { //invia solo quelli maggiori di 0
 
@@ -860,7 +867,7 @@ void forwardPackets() {
             }
 
           } else {
-            delay(100); //inizialmente era 1000
+            delay(pktSendDelay); //inizialmente era 1000
             if (debug > 0 || debug < 0) {
               Serial.println(F("Jump"));
             }
@@ -873,11 +880,11 @@ void forwardPackets() {
       // used for repeat only one time
       if (canSendLoRaWAN == 0) {
 
-        delay(1000);
+        delay(delayForSendLW);
 
         //for test send 2 times
         for (int k = 0; k < 2; k++) {
-          delay(100); //inizialmente era 1000
+          delay(pktSendDelay); //inizialmente era 1000
           setup_sendLoRaWAN();
           Serial.println(F("send LW"));
         }
@@ -894,7 +901,7 @@ void forwardPackets() {
     // prossimo inizio trasmissione
     TXmode_startTime = currentMillisTX + RTT;
     if (debug < 0) {
-      Serial.println(F("wait 10s"));
+      Serial.println(F("sleepMode"));
     }
     //Aspetto per lo sleep
     send_mode = 4;

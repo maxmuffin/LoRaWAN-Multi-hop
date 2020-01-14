@@ -21,6 +21,10 @@ const int debug = -1;
 
 int synched = 0;
 int SyncInterval = 10000;
+
+int pktSendDelay = 300; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+int delayForSendLW = 500;
+
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 
 unsigned long currentTime, previousMillis, startTime;
@@ -682,7 +686,11 @@ void listenOnRF(int pSize) {
       // Increment received packet count
       receivedCount++;
       if (debug < 0) {
-        Serial.println(F("Analize"));
+        if(receivedCount ==1){
+          Serial.println(F("Analize"));
+        }else{
+        Serial.print(F("Analize\t"));
+      }
       }
       send_mode = 1;
       return;
@@ -839,7 +847,7 @@ void forwardPackets() {
             LoRa.setFrequency(txfreq);
             //LoRa.setSpreadingFactor(txfreq);
 
-            delay(1000);
+            delay(pktSendDelay);
 
             if (dimRcvMess[i] > 0 ) { //invia solo quelli maggiori di 0
 
@@ -860,7 +868,7 @@ void forwardPackets() {
               Serial.println(dimRcvMess[i]);
             }
           } else {
-            delay(1000);
+            delay(pktSendDelay);
             if (debug > 0 || debug < 0) {
               Serial.println(F("Jump"));
             }
@@ -873,11 +881,11 @@ void forwardPackets() {
       // used for repeat only one time
       if (canSendLoRaWAN == 0) {
 
-        delay(1000);
+        delay(delayForSendLW);
 
         //for test send 2 times
         for (int k = 0; k < 2; k++) {
-          delay(1000);
+          delay(pktSendDelay);
           setup_sendLoRaWAN();
           Serial.println(F("s"));
         }

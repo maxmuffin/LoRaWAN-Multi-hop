@@ -21,6 +21,10 @@ const int debug = 0;
 
 int synched = 0;
 int SyncInterval = 10000;
+
+int pktSendDelay = 300; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+int delayForSendLW = 500;
+
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 
 unsigned long currentTime, previousMillis, startTime;
@@ -443,7 +447,7 @@ void receivePackets() {
     // prossimo inizio ricezione
     RXmode_startTime = currentMillisRX + RTT;
     if (debug < 0) {
-      Serial.println(F("wait 10s"));
+      Serial.println(F("sleepMode"));
     }
 
     send_mode = 4;
@@ -481,7 +485,7 @@ void forwardPackets() {
       if (canSendLoRaWAN == 0) {
         //for test send 2 times
         for (int k = 0; k < 3; k++) {
-          delay(100); //inizialmente era 1000
+          delay(pktSendDelay); //inizialmente era 1000
           // take DHT values and send LoraWAN pkt
           setup_sendLoRaWAN();
           //Serial.println(F("s"));
@@ -496,7 +500,7 @@ void forwardPackets() {
     // prossimo inizio trasmissione
     TXmode_startTime = currentMillisTX + RTT;
     if (debug < 0) {
-      Serial.println(F("wait 10s"));
+      Serial.println(F("sleepMode"));
     }
     //Aspetto per lo sleep
     send_mode = 4;

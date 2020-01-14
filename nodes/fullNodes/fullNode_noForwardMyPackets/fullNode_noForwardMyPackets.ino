@@ -8,7 +8,7 @@
 unsigned long startTime;
 unsigned long currentTime;
 const unsigned long interval = 30000UL; // 30 seconds of relay than switch to end-node
-const long sendpkt_interval = 5000;  // 5 seconds for replay received message --> forward message every t seconds.
+const long sendpkt_interval = 100;  // 200 milliseconds for replay received message --> forward message every t seconds.
 unsigned long previousMillis = millis();
 
 //********************************* RELAY
@@ -525,7 +525,7 @@ void showPreviousMessages() {
 void checkPreviousPacket() {
 
   int equal1 = 0, equal2 = 0, equal3 = 0;
-  showPreviousMessages();
+  //showPreviousMessages();
   for (int i = 0; i < rowBuffer; i++) {
     for (int j = 0; j <= dimBuffer; j++) {
       if (bufferMatrix[i][j] == message[j]) {

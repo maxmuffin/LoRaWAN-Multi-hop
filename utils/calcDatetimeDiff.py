@@ -4,16 +4,16 @@ import datetime
 got = 0
 loss = 0
 
-filename = 'Test2Relay - Foglio3'
-with open(filename+'.csv','r') as csvinput:
-    with open('output'+filename+'.csv', 'w') as csvoutput:
+filename = 'Test3Delay1000ms'
+with open('data/'+filename+'.csv','r') as csvinput:
+    with open('data/latency'+filename+'.csv', 'w') as csvoutput:
         writer = csv.writer(csvoutput)
         csv_file = csv.reader(csvinput)
 
         header = next(csv_file)
 
         cleanedData = []
-        header.append("delay RX-TX")
+        header.append("latency RX-TX")
         writer.writerow(header)
 
         for row in csv_file:
@@ -56,7 +56,7 @@ with open(filename+'.csv','r') as csvinput:
                 cleanedData.append(row[5])
                 cleanedData.append(row[6])
                 cleanedData.append(diff)
-                print(diff)
+                #print(diff)
                 loss +=1
                 continue
 
