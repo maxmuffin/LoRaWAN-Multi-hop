@@ -8,10 +8,11 @@ got = 0
 loss = 0
 
 test = input("Inserisci numero Test (1 - 3): ")
-run = input("Inserisci numero Run (1 - 9): ")
-filename = 'Test'+test+'Diviso - Run'+run
+delay = input("Inserisci il delay [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: ")
+filename = 'latencyTest'+test+'Delay'+delay+'ms'
 
-date0 = '00:00:00.000000'
+
+date0 = '0:00:00.000000'
 dateZero = datetime.datetime.strptime(date0, "%H:%M:%S.%f")
 
 def intervalliConfidenza(mean, list, devS, interval = 0.95):
@@ -25,16 +26,18 @@ def intervalliConfidenza(mean, list, devS, interval = 0.95):
 
     return errore_standard, marginError, upper_margin, lower_margin
 
-with open('data/csvDivisi/'+filename+'.csv','r') as csvinput:
+with open('data/'+filename+'.csv','r') as csvinput:
     csv_file = csv.reader(csvinput)
-    next(csv_file, None)
+    #header = next(csv_file)
+    header = next(csv_file)
     timeList = []
     for row in csv_file:
-        delay = datetime.datetime.strptime(row[7], '%H:%M:%S.%f')
-        if delay != dateZero:
-            delayString = str(delay)
-            formattedDelay = delayString[11:]
-            timeList.append(formattedDelay)
+
+        latency = datetime.datetime.strptime(row[7], '%H:%M:%S.%f')
+        if latency != dateZero:
+            latencyString = str(latency)
+            formattedLatency = latencyString[11:]
+            timeList.append(formattedLatency)
 
             got+=1
         else:
@@ -66,7 +69,7 @@ with open('data/csvDivisi/'+filename+'.csv','r') as csvinput:
     print("intervalli: \t+"+ str(upMargin)+" \t"+str(floatAvg)+"\t -"+str(lowMargin))
 
     data = []
-    data.append(test+" - "+run)
+    data.append(test+" - "+delay)
     data.append(got)
     data.append(loss)
     data.append(tot)
@@ -84,7 +87,7 @@ worksheet = workbook.add_worksheet()
 
 row = 0
 column = 0
-header = ["Test - Run", "gotPkt", "lossPkt", "totPkt", "PDR(%)","mean", "StdDev", "StdErr",
+header = ["Test - Delay", "gotPkt", "lossPkt", "totPkt", "PDR(%)","mean", "StdDev", "StdErr",
                     "marginErr95", "upMargin", "lowMargin"]
 # Write Header
 for item in header :
