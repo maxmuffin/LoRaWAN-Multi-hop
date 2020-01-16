@@ -4,17 +4,21 @@ import datetime
 got = 0
 loss = 0
 
-filename = 'Test1_750ms'
-with open('data/'+filename+'.csv','r') as csvinput:
-    with open('data/latency'+filename+'.csv', 'w') as csvoutput:
+test = input("Inserisci numero Test (1 - 3): ")
+delay = input("Inserisci il delay [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: ")
+
+filename = 'Test'+test+'_'+delay+'ms'
+with open('data/RxTxMerged/Test'+test+'/'+filename+'.csv','r') as csvinput:
+    with open('data/latency/Test'+test+'/latency'+filename+'.csv', 'w') as csvoutput:
         writer = csv.writer(csvoutput)
         csv_file = csv.reader(csvinput)
 
         header = next(csv_file)
 
         cleanedData = []
-        header.append("latency RX-TX")
-        writer.writerow(header)
+        newHeader = ["pktCounter","bytes","frame","base64","FRM Payload","timestamp_TX","timestamp_RX","latency RX-TX"]
+        #header.append("latency RX-TX")
+        writer.writerow(newHeader)
 
         for row in csv_file:
             cleanedData.append(row[0])

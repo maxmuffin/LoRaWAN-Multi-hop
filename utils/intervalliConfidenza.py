@@ -27,7 +27,7 @@ def intervalliConfidenza(mean, list, devS, interval = 0.95):
 
     return errore_standard, marginError, upper_margin, lower_margin
 
-with open('data/'+filename+'.csv','r') as csvinput:
+with open('data/latency/Test'+test+'/'+filename+'.csv','r') as csvinput:
     csv_file = csv.reader(csvinput)
     #header = next(csv_file)
     header = next(csv_file)
@@ -83,7 +83,7 @@ with open('data/'+filename+'.csv','r') as csvinput:
     data.append(lowMargin)
 
 # Create File and Save data on it
-workbook = xlsxwriter.Workbook('data/intervalliConfidenza/CI_' + filename + '.xlsx')
+workbook = xlsxwriter.Workbook('data/intervalliConfidenza/Test'+test+'/CI_' + name + '.xlsx')
 worksheet = workbook.add_worksheet()
 
 row = 0

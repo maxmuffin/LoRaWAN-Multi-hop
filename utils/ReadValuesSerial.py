@@ -11,12 +11,12 @@ port1 = 'COM10'
 
 serial_speed = 9600
 
-opMode = str(input("Inserisci il numero del Test: "))
+test = str(input("Inserisci il numero del Test: "))
 delayTime = str(input("Inserisci il delay del test [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: "))
 
-unique_filename = opMode+"_"+delayTime+"_"+str(uuid.uuid4())+".csv"
+unique_filename = test+"_"+delayTime+"_"+str(uuid.uuid4())+".csv"
 
-with open("data/acquiredData/Test"+opMode+"/Delay"+delayTime+"ms/{}".format(unique_filename), 'w', newline='') as csvfile:
+with open("data/acquiredData/Test"+test+"/Delay"+delayTime+"ms/{}".format(unique_filename), 'w', newline='') as csvfile:
     filewriter = csv.writer(csvfile, delimiter=',')
     filewriter.writerow(['pktCounter', 'bytes', 'frame', 'base64', 'FRM Payload', 'timestamp_TX'])
     startTime = datetime.datetime.now()
