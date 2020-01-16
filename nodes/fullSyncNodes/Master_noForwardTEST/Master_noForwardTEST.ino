@@ -24,6 +24,7 @@ int SyncInterval = 10000;
 
 int pktSendDelay = 300; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
 int delayForSendLW = 500;
+int sleepTimeTest = 5000; //1000, 5000, 10000
 
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 
@@ -451,7 +452,7 @@ void receivePackets() {
     }
 
     send_mode = 4;
-    delay(sleepTime);
+    delay(sleepTimeTest);
 
     TXmode_startTime = millis();
 
@@ -504,7 +505,7 @@ void forwardPackets() {
     }
     //Aspetto per lo sleep
     send_mode = 4;
-    delay(sleepTime);
+    delay(sleepTimeTest);
 
     // aggiorno il tempo di inizio ricezione
     RXmode_startTime = millis();
