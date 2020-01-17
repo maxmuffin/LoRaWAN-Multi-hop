@@ -5,6 +5,9 @@
 #include <DHT_U.h>
 #include <LoRa.h>
 
+int pktSendDelay = 750; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+int sleepTimeTest = 500; //500= 500ms, 5000=5s, 10000=10s
+
 // 0 for slave 1 for master
 int initConf = 0;
 // LoRaWAN end-device address (DevAddr)
@@ -22,9 +25,8 @@ const int debug = -1;
 int synched = 0;
 int SyncInterval = 10000;
 
-int pktSendDelay = 300; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
 int delayForSendLW = 500;
-int sleepTimeTest = 5000; //1000= 1s, 5000=5s, 10000=10s
+
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 
 unsigned long currentTime, previousMillis, startTime;
@@ -35,6 +37,7 @@ int sleepTime, RTT, TX_interval, RX_interval;
 long lastSendTime = 0;
 int send_mode = -1;
 int receivedCount;
+int countElementinBuffer;
 int canForward = 0;
 int canSendLoRaWAN = 0;
 
@@ -257,6 +260,7 @@ void setup() {
     RTT = (TX_interval + sleepTime) * 2;
   }
   receivedCount = 0;
+  countElementinBuffer = 0;
   // initialize ratio at 433 MHz
   if (!LoRa.begin(433E6)) {
     if (debug > 0) Serial.println(F("LoRa init failed"));
@@ -686,9 +690,9 @@ void listenOnRF(int pSize) {
       // Increment received packet count
       receivedCount++;
       if (debug < 0) {
-        if(receivedCount ==1){
+        if (receivedCount == 1) {
           Serial.println(F("Analize"));
-        }else{
+        } else {
           Serial.print(F("Analize\t"));
         }
       }
@@ -768,7 +772,7 @@ void checkPreviousPackets() {
       if (debug > 0 || debug < 0) {
         Serial.println(F("diverso"));
       }
-
+      countElementinBuffer++;
       copyMessageintoBuffers();
 
       LoRa.sleep();
@@ -789,17 +793,18 @@ void copyMessageintoBuffers() {
     prevMessBuffer[receivedCount % rowBuffer][i] = packet[i];
     i++;
   }
+  if (countElementinBuffer <= rowBuffer) {
+    if (index_fwdBuffer < rowBuffer && packetSize > 0) { //da controllare bene, l'index non deve sforare il fwdBuffer
+      // Copy received message into forward Buffer
+      while (j <= packetSize) {
+        fwdBuffer[index_fwdBuffer][j] = packet[j]; //modificato anche qui prima era index_fwdBuffer%rowBuffer
+        j++;
+      }
 
-  if (index_fwdBuffer < rowBuffer && packetSize > 0) { //da controllare bene, l'index non deve sforare il fwdBuffer
-    // Copy received message into forward Buffer
-    while (j <= packetSize) {
-      fwdBuffer[index_fwdBuffer][j] = packet[j]; //modificato anche qui prima era index_fwdBuffer%rowBuffer
-      j++;
+      // copio la dimensione neln'array delle dimensioni e incremento l'index
+      dimRcvMess[index_fwdBuffer] = j - 1;
+      index_fwdBuffer++;
     }
-
-    // copio la dimensione neln'array delle dimensioni e incremento l'index
-    dimRcvMess[index_fwdBuffer] = j - 1;
-    index_fwdBuffer++;
   }
 }
 
@@ -936,6 +941,7 @@ void initPreviousMessagesBuffer() {
 }
 
 void initFwdBuffer() {
+  countElementinBuffer = 0;
   index_fwdBuffer = 0;
 
   for (int i = 0; i < rowBuffer; i++) {

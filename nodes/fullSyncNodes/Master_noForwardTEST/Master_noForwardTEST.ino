@@ -5,6 +5,9 @@
 #include <DHT_U.h>
 #include <LoRa.h>
 
+int pktSendDelay = 750; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+int sleepTimeTest = 500; //500, 5000, 10000
+
 // 0 for slave 1 for master
 int initConf = 1;
 // LoRaWAN end-device address (DevAddr)
@@ -22,9 +25,8 @@ const int debug = 0;
 int synched = 0;
 int SyncInterval = 10000;
 
-int pktSendDelay = 300; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
 int delayForSendLW = 500;
-int sleepTimeTest = 5000; //1000, 5000, 10000
+
 
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 
