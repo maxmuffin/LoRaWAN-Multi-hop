@@ -9,7 +9,9 @@ loss = 0
 
 test = input("Inserisci numero Test (1 - 3): ")
 delay = input("Inserisci il delay [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: ")
-name = 'Test'+test+'_'+delay+'ms'
+sleepTme = input("Inserisci lo sleepTime in ms [500ms, 1000ms, 10000ms]: ")
+
+name = 'Test'+test+'_'+delay+'ms-'+sleepTme+'ms'
 filename = 'latency'+name
 
 

@@ -5,8 +5,8 @@
 #include <DHT_U.h>
 #include <LoRa.h>
 
-int pktSendDelay = 1500; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
-int sleepTimeTest = 5000; //500, 5000, 10000
+int pktSendDelay = 1000; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+int sleepTimeTest = 10000; //500, 5000, 10000
 
 // 0 for slave 1 for master
 int initConf = 1;

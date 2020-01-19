@@ -13,8 +13,11 @@ serial_speed = 9600
 
 test = str(input("Inserisci il numero del Test: "))
 delayTime = str(input("Inserisci il delay del test [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: "))
+sleepTme = input("Inserisci lo sleepTime in ms [500ms, 1000ms, 10000ms]: ")
 
-unique_filename = test+"_"+delayTime+"_"+str(uuid.uuid4())+".csv"
+unique_filename = 'Test'+test+'_'+delayTime+'ms-'+sleepTme+'ms'+"_"+str(uuid.uuid4())+".csv"
+
+#unique_filename = test+"_"+delayTime+"_"+str(uuid.uuid4())+".csv"
 
 with open("data/acquiredData/Test"+test+"/Delay"+delayTime+"ms/{}".format(unique_filename), 'w', newline='') as csvfile:
     filewriter = csv.writer(csvfile, delimiter=',')
