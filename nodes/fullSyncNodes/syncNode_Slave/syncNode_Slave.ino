@@ -651,7 +651,13 @@ void listenOnRF(int pSize) {
       Serial.print(F("]"));
       Serial.println("");
     }
+
     packetSize = i;
+
+    if (packetSize < 2) {
+      Serial.println(F("null pkt"));
+      return;
+    }
 
     // check info of received packets's device address
     char devaddr[12] = {'\0'};

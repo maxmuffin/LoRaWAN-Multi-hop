@@ -22,7 +22,7 @@ const int debug = -1;
 int synched = 0;
 int SyncInterval = 10000;
 
-int pktSendDelay = 300; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+int pktSendDelay = 1000; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
 int delayForSendLW = 500;
 
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
@@ -649,6 +649,11 @@ void listenOnRF(int pSize) {
     }
     packetSize = i;
 
+    if (packetSize < 2) {
+      Serial.println(F("null pkt"));
+      return;
+    }
+
     // check info of received packets's device address
     char devaddr[12] = {'\0'};
     // take devide address of received packets
@@ -686,11 +691,11 @@ void listenOnRF(int pSize) {
       // Increment received packet count
       receivedCount++;
       if (debug < 0) {
-        if(receivedCount ==1){
+        if (receivedCount == 1) {
           Serial.println(F("Analize"));
-        }else{
-        Serial.print(F("Analize\t"));
-      }
+        } else {
+          Serial.print(F("Analize\t"));
+        }
       }
       send_mode = 1;
       return;

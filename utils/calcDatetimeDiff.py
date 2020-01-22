@@ -6,9 +6,16 @@ loss = 0
 
 test = input("Inserisci numero Test (1 - 3): ")
 delay = input("Inserisci il delay [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: ")
-sleepTme = input("Inserisci lo sleepTime in ms [500ms, 1000ms, 10000ms]: ")
 
-filename = 'Test'+test+'_'+delay+'ms-'+sleepTme+'ms'
+if test == "3":
+    sleepTime = input("Inserisci lo sleepTime [500ms, 5s, 10s]: ")
+    if sleepTime == "500":
+        filename = 'Test'+test+' '+delay+'ms '+sleepTime+'ms'
+    else:
+        filename = 'Test'+test+' '+delay+'ms '+sleepTime+'sec'
+else:
+    filename = 'Test'+test+' '+delay+'ms'
+
 with open('data/RxTxMerged/Test'+test+'/'+filename+'.csv','r') as csvinput:
     with open('data/latency/Test'+test+'/latency'+filename+'.csv', 'w') as csvoutput:
         writer = csv.writer(csvoutput)

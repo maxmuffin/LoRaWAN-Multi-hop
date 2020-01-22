@@ -25,7 +25,7 @@ with open("data/acquiredData/Test"+test+"/Delay"+delayTime+"ms/{}".format(unique
     startTime = datetime.datetime.now()
     # read relevations from Arduino
     ser = serial.Serial(port1, serial_speed)
-    for i in range(0,60): #15 * 7 times for SyncTest, 102 for End and Forward Test
+    for i in range(0,120): #15 * 7 times for SyncTest, 102 for End and Forward Test
         # FOR SYNC 3 TIMES 36
         saveRow = True
 
