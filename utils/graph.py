@@ -86,7 +86,7 @@ with open('data/latency/Test'+test+'/'+filename+'.csv','r') as csvinput:
         header = next(csv_file)
 
         cleanedData = []
-        newHeader = ["latency","max","min"]
+        newHeader = ["latency","max","min", "marginError"]
         #header.append("latency RX-TX")
         writer.writerow(newHeader)
 
@@ -97,6 +97,7 @@ with open('data/latency/Test'+test+'/'+filename+'.csv','r') as csvinput:
                 cleanedData.append(floatTime)
                 cleanedData.append(floatTime+marginErr)
                 cleanedData.append(floatTime-marginErr)
+                cleanedData.append(marginErr)
                 cleanedData.append('\n')
 
         writer.writerow(cleanedData)
