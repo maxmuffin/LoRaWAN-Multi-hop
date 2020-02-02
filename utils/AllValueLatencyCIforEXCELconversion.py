@@ -7,6 +7,9 @@ import xlsxwriter
 got = 0
 loss = 0
 
+#Read latency values, calc cofidential interval, create new csv file for non NaN values with margin Error
+
+
 test = input("Inserisci numero Test (1 - 3): ")
 delay = input("Inserisci il delay [300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms]: ")
 
@@ -36,6 +39,7 @@ def intervalliConfidenza(mean, list, devS, interval = 0.95):
 
     return errore_standard, marginError, upper_margin, lower_margin
 
+#Read latency values and calc CI
 with open('data/latency/Test'+test+'/'+filename+'.csv','r') as csvinput:
     csv_file = csv.reader(csvinput)
     #header = next(csv_file)
@@ -78,6 +82,7 @@ with open('data/latency/Test'+test+'/'+filename+'.csv','r') as csvinput:
     print("Margine Errore:\t"+str(marginErr))
     print("intervalli: \t+"+ str(upMargin)+" \t"+str(floatAvg)+"\t -"+str(lowMargin))
 
+# Create excel file with marginError values for all latency
 with open('data/latency/Test'+test+'/'+filename+'.csv','r') as csvinput:
     with open('data/latency/Test'+test+'/Graph/'+filename+'EXCEL.csv', 'w') as csvoutput:
         writer = csv.writer(csvoutput)
