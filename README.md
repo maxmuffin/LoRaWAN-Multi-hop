@@ -25,6 +25,11 @@ The intervals after synchronization are as follows:
 
 For the hardware have been used Arduino UNO and Dragino LoRa Shield v1.4
 
+This is the network topology used for test all kind of nodes listed above:
+<p align="center">
+  <img src="/utils/images/Test2_3Topology.png" width="700">
+</p>
+
 ### Gateway:
 - **single_chan_pkt_fwd**: an implementation of a Single Channel LoRaWAN Gateway mainteined by Thomas Telkamp thomas@telkamp.eu.  
 This folder was forked by @jlesech https://github.com/tftelkamp/single_chan_pkt_fwd to add json configuration file
