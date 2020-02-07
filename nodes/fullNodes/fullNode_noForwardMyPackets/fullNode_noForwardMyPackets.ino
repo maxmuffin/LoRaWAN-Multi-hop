@@ -8,7 +8,7 @@
 unsigned long startTime;
 unsigned long currentTime;
 const unsigned long interval = 30000UL; // 30 seconds of relay than switch to end-node
-const long sendpkt_interval = 200;  // 200 milliseconds for replay received message --> forward message every t seconds.
+const long sendpkt_interval = 250;  // 200 milliseconds for replay received message --> forward message every t seconds.
 unsigned long previousMillis = millis();
 
 //********************************* RELAY
@@ -267,7 +267,7 @@ void loop() {
     }
     setup_sendLoRaWAN();
 
-    delay(20); //inizialmente era 500
+    delay(100); //inizialmente era 500
     if ( debug > 0 ) {
       Serial.println(F("\nReset LMIC"));
     }
