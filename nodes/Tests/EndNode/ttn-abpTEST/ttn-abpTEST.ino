@@ -1,7 +1,9 @@
-
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
+
+// USED FOR TESTS
+// IN THIS SKETCH CAN CHANGE PARAMETER OF PKTSEND AND RESET (pktCounter resetting every sended message)
 
 unsigned long startTime;
 unsigned long currentTime;

@@ -449,7 +449,7 @@ void receivePacket() {
       /*if (debug > 0) {
         Serial.print(F("Devaddr:"));
         Serial.println(devaddr);
-      }*/
+        }*/
 
       int myDeviceSimilarities = 0;
       for (int i = 0; i < strlen(myDeviceAddress); i++) {

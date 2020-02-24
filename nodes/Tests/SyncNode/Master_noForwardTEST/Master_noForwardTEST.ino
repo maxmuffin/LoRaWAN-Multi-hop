@@ -5,6 +5,11 @@
 #include <DHT_U.h>
 #include <LoRa.h>
 
+// this version is used for test3, send data but not listen and not receive nothing
+
+int pktSendDelay = 1000; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+int sleepTimeTest = 10000; //500, 5000, 10000
+
 // 0 for slave 1 for master
 int initConf = 1;
 // LoRaWAN end-device address (DevAddr)
@@ -17,10 +22,16 @@ char myDeviceAddress [8] = "2611032\0";  // device 1
 //char myDeviceAddress [8] = "067295e\0"; // device 2
 //Set Debug = 1 to enable Output;
 // -1 to debug synchronization
-const int debug = -1;
+const int debug = 0;
 
 int synched = 0;
 int SyncInterval = 10000;
+
+// used for configure lorawan parameters
+int delayForSendLW = 500;
+int sleepTimeMaster = 10000; //10seconds sleep
+int TXRXinterval = 20000; //20 seconds rx_tx interval
+
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 
 unsigned long currentTime, previousMillis, startTime;
@@ -32,7 +43,9 @@ long lastSendTime = 0;
 int op_mode = -1;
 int initOnStartup = 0;
 int canSendLoRaWAN = 0;
+
 int counter = 0;
+long randNumber;
 
 //sync header
 byte idByte = 0xFF;
@@ -76,9 +89,6 @@ const lmic_pinmap lmic_pins = {
   // connected to D2, D6, D7
 };
 
-#define DHT_PIN 3
-#define DHTTYPE DHT11
-DHT dht(DHT_PIN, DHTTYPE);
 
 void onEvent (ev_t ev) {
   if ( debug > 0 ) {
@@ -108,48 +118,48 @@ void do_send(osjob_t* j) {
       Serial.println(F("OP_TXRXPEND"));
     }
   } else {
-    if (initConf == 0) {
-      byte payload[2]; //on device 1 send payload[4], on device 2 payload [2]
-      payload[0] = highByte(random(1, 9));
-      payload[1] = lowByte(random(1, 9));
+    randNumber = random(9999);
 
-      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-
-    } else { //take values from DHT and send it
-      float h = dht.readHumidity();
-      float t = dht.readTemperature();
-
-      // encode float as int
-      int16_t tempInt = round(t * 100);
-      int16_t humInt = round(h * 100);
-
-      byte payload[4];
-      /*
-        payload[0] = highByte(tempInt);
-        payload[1] = lowByte(tempInt);
-        payload[2] = highByte(humInt);
-        payload[3] = lowByte(humInt);*/
-      payload[0] = highByte(random(1, 9));
-      payload[1] = lowByte(random(1, 9));
-      payload[2] = highByte(random(1, 9));
-      payload[3] = lowByte(random(1, 9));
-      // need to add random values?
-      LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
-      if (debug == 0){
-        counter++;
-        Serial.print(counter);
-        Serial.print(',');
-        Serial.print(int(LMIC.dataLen));
-        Serial.print('\n');
-      }
+    if (randNumber < 10) {
+      randNumber = randNumber * 1000;
+    } else if (randNumber < 100) {
+      randNumber = randNumber * 100;
+    } else if (randNumber < 1000) {
+      randNumber = randNumber * 10;
     }
+    char payload[4];
+    dtostrf(randNumber, 4, 0, payload);
 
-    if ( debug > 0 ) {
-      Serial.println(F("Send pkt"));
-    }
-    //Serial.print(F("Send on freq: "));
-    //Serial.println(LMIC.freq);
+    LMIC_setTxData2(1, (uint8_t*)payload, sizeof(payload), 0);
   }
+
+  if (debug == 0) {
+    counter++;
+    Serial.print(counter);
+    Serial.print(',');
+    Serial.print(int(LMIC.dataLen));
+    Serial.print(',');
+    if (LMIC.dataLen) {
+      // data received in rx slot after tx
+      for (int i = 0; i < LMIC.dataLen; i++) {
+        if (LMIC.frame[LMIC.dataBeg + i] < 0x10) {
+          Serial.print(F("0"));
+
+        }
+        Serial.print(LMIC.frame[LMIC.dataBeg + i], HEX);
+      }
+
+    }
+    Serial.print('\n');
+  }
+
+
+  if ( debug > 0 ) {
+    Serial.println(F("Send pkt"));
+  }
+  //Serial.print(F("Send on freq: "));
+  //Serial.println(LMIC.freq);
+
   return;
 }
 
@@ -216,10 +226,12 @@ void setup_sendLoRaWAN() {
 void setup() {
   Serial.begin(9600);
 
+  randomSeed(analogRead(0));
+
   // if i'm master set tx and rx interval
   if (initConf == 1 ) {
-    TX_interval = 20000;
-    TXmode_startTime = 20000;
+    TX_interval = TXRXinterval;
+    TXmode_startTime = TX_interval;
     TXmode_endTime = TXmode_startTime + TX_interval;
 
     RXmode_endTime = TXmode_endTime;
@@ -227,7 +239,7 @@ void setup() {
 
     RX_interval =  TX_interval;
 
-    sleepTime = 10000; //10 secondi sleep
+    sleepTime = sleepTimeMaster; //10 secondi sleep
     RTT = (TX_interval + sleepTime) * 2;
   }
 
@@ -439,11 +451,11 @@ void receivePackets() {
     // prossimo inizio ricezione
     RXmode_startTime = currentMillisRX + RTT;
     if (debug < 0) {
-      Serial.println(F("wait 10s"));
+      Serial.println(F("sleepMode"));
     }
 
     op_mode = 4;
-    delay(sleepTime);
+    delay(sleepTimeTest);
 
     TXmode_startTime = millis();
 
@@ -462,7 +474,7 @@ void forwardPackets() {
   /*if (initOnStartup == 0){
     setupLoRaWAN();
     initOnStartup++;
-  }*/
+    }*/
 
   //controllo fin quando sono nel range della rx del master per inviare i miei messaggi
   unsigned long currentMillisTX = millis();
@@ -477,7 +489,7 @@ void forwardPackets() {
       if (canSendLoRaWAN == 0) {
         //for test send 2 times
         for (int k = 0; k < 3; k++) {
-          delay(1000);
+          delay(pktSendDelay); //inizialmente era 1000
           // take DHT values and send LoraWAN pkt
           setup_sendLoRaWAN();
           //Serial.println(F("s"));
@@ -492,11 +504,11 @@ void forwardPackets() {
     // prossimo inizio trasmissione
     TXmode_startTime = currentMillisTX + RTT;
     if (debug < 0) {
-      Serial.println(F("wait 10s"));
+      Serial.println(F("sleepMode"));
     }
     //Aspetto per lo sleep
     op_mode = 4;
-    delay(sleepTime);
+    delay(sleepTimeTest);
 
     // aggiorno il tempo di inizio ricezione
     RXmode_startTime = millis();

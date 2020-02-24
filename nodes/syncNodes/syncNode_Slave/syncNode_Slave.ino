@@ -5,8 +5,8 @@
 #include <DHT_U.h>
 #include <LoRa.h>
 
-int pktSendDelay = 1000; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
-int sleepTimeTest = 10000; //500= 500ms, 5000=5s, 10000=10s
+
+//int sleepTimeTest = 10000; //500= 500ms, 5000=5s, 10000=10s
 
 // 0 for slave 1 for master
 int initConf = 0;
@@ -25,7 +25,11 @@ const int debug = -1;
 int synched = 0;
 int SyncInterval = 10000;
 
+int pktSendDelay = 1000; // 300ms, 500ms, 750ms, 1000ms, 1500ms, 2000ms
+// used for configure lorawan parameters
 int delayForSendLW = 500;
+int sleepTimeMaster = 10000; //10seconds sleep
+int TXRXinterval = 20000; //20 seconds rx_tx interval
 
 // received rxOpen and rxClose of master, correspond of txOpen and txClose of slave
 
@@ -247,8 +251,8 @@ void setup() {
 
   // if i'm master set tx and rx interval
   if (initConf == 1 ) {
-    TX_interval = 20000;
-    TXmode_startTime = 20000;
+    TX_interval = TXRXinterval;
+    TXmode_startTime = TX_interval;
     TXmode_endTime = TXmode_startTime + TX_interval;
 
     RXmode_endTime = TXmode_endTime;
@@ -256,7 +260,7 @@ void setup() {
 
     RX_interval =  TX_interval;
 
-    sleepTime = 10000; //10 secondi sleep
+    sleepTime = sleepTimeMaster; //10 secondi sleep
     RTT = (TX_interval + sleepTime) * 2;
   }
   receivedCount = 0;
@@ -588,7 +592,8 @@ void receivePackets() {
     }
 
     op_mode = 4;
-    delay(sleepTimeTest);
+    //delay(sleepTimeTest); FOR TEST
+    delay(sleepTime);
     TXmode_startTime = millis();
 
     op_mode = 2;
@@ -917,7 +922,8 @@ void forwardPackets() {
     }
     //Aspetto per lo sleep
     op_mode = 4;
-    delay(sleepTimeTest);
+    //delay(sleepTimeTest); FOR TEST
+    delay(sleepTime);
 
     // aggiorno il tempo di inizio ricezione
     RXmode_startTime = millis();
