@@ -59,7 +59,7 @@ static uint8_t packet[256]; // current received packet
 static uint8_t message[256]; //used for send message
 static uint8_t previous_packet[256];
 
-static int send_mode = 0; /* define mode default receive mode */
+static int op_mode = 0; /* define mode default receive mode */
 
 //Set Debug = 1 to enable Output;
 const int debug = 1;
@@ -103,9 +103,9 @@ void setup() {
 }
 
 void loop() {
-  if (!send_mode) {
+  if (!op_mode) {
     receivePacket();          /* received message and wait server downstream */
-  } else if (send_mode == 1) {
+  } else if (op_mode == 1) {
     checkPreviousPacket();
   } else {
     forwardPacket(); // SEND Packet
@@ -282,10 +282,10 @@ void receivePacket() {
         receivedCount++;
 
         if (receivedCount > 1) {
-          send_mode = 1;
+          op_mode = 1;
         } else {
           // skip to mode 2 (SEND received packet)
-          send_mode = 2;
+          op_mode = 2;
         }
 
 
@@ -353,13 +353,13 @@ void checkPreviousPacket() {
     Serial.println("Già inoltrato, non invio, mi metto in ascolto di ricevere nuovi pacchetti");
     Serial.println("");
     checkFrequency();
-    send_mode = 0;
+    op_mode = 0;
     Serial.println(F("Waiting for new incoming packets using: "));
     show_config();
 
   } else { // pacchetto non ancora inoltrato e lo invio
     Serial.println("Pacchetto diverso dai precedenti");
-    send_mode = 2;
+    op_mode = 2;
   }
 
 }
@@ -411,7 +411,7 @@ void forwardPacket() {
     }
     copyMessage();
 
-    send_mode = 0; //back to receive mode
+    op_mode = 0; //back to receive mode
     printChangedMode();
 
   }
@@ -420,9 +420,9 @@ void forwardPacket() {
 
 // Print status of operation mode of relay
 void printChangedMode() {
-  if (send_mode == 2) {
+  if (op_mode == 2) {
     Serial.println(F("Sending received packet"));
-  } else if (send_mode == 0) {
+  } else if (op_mode == 0) {
     Serial.println(F("Waiting for new incoming packets using: "));
     show_config();
   } else {

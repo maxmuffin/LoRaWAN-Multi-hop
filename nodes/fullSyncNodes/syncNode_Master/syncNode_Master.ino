@@ -33,7 +33,7 @@ unsigned long currentMillisRX;
 
 int sleepTime, RTT, TX_interval, RX_interval;
 long lastSendTime = 0;
-int send_mode = -1;
+int op_mode = -1;
 int receivedCount;
 int canForward = 0;
 int canSendLoRaWAN = 0;
@@ -382,7 +382,7 @@ void initSync() {
         set_relay_config();
 
         // passo in modalità ricezione
-        send_mode = 0;
+        op_mode = 0;
         if (debug < 0) {
           Serial.println(F("swap in rcv"));
         }
@@ -407,7 +407,7 @@ void initSync() {
         set_relay_config();
         // passo in modalità invio
         //delay(300);
-        send_mode = 2;
+        op_mode = 2;
         if (debug < 0) {
           Serial.println(F("swap in send"));
         }
@@ -549,14 +549,14 @@ void onReceiveSyncforMaster(int pSize) {
 
 void loop() {
 
-  if (send_mode == -1) {
+  if (op_mode == -1) {
     // wait for synchronization
     initSync();
-  } else if (send_mode == 0) {
+  } else if (op_mode == 0) {
     receivePackets();
-  } else if (send_mode == 1) {
+  } else if (op_mode == 1) {
     checkPreviousPackets();
-  } else if (send_mode == 2) {
+  } else if (op_mode == 2) {
     forwardPackets();
   }
 
@@ -582,12 +582,12 @@ void receivePackets() {
       Serial.println(F("wait 10s"));
     }
 
-    send_mode = 4;
-    delay(sleepTime);//cambiare modo in sleep (send_mode = 4)
+    op_mode = 4;
+    delay(sleepTime);//cambiare modo in sleep (op_mode = 4)
 
     TXmode_startTime = millis();
 
-    send_mode = 2;
+    op_mode = 2;
     if (debug < 0) {
       Serial.println(F("swap to send"));
     }
@@ -596,7 +596,7 @@ void receivePackets() {
 
 // Lora receive callback that launch listenOnRF
 void capturePackets() {
-  if (send_mode == 0) {
+  if (op_mode == 0) {
     LoRa.setSpreadingFactor(SF);
     LoRa.onReceive(listenOnRF);
     LoRa.receive();
@@ -607,7 +607,7 @@ void capturePackets() {
 void listenOnRF(int pSize) {
 
   //controllo se sono in fase di invio o in sleep, in quel caso return
-  if (send_mode == 2 || send_mode == 4 ) {
+  if (op_mode == 2 || op_mode == 4 ) {
     return;
   } else {
 
@@ -683,7 +683,7 @@ void listenOnRF(int pSize) {
       }
 
       LoRa.sleep();
-      send_mode = 0;
+      op_mode = 0;
       return;
 
     } else { //non è inviato da me
@@ -697,7 +697,7 @@ void listenOnRF(int pSize) {
           Serial.print(F("Analize\t"));
         }
       }
-      send_mode = 1;
+      op_mode = 1;
       return;
 
     }
@@ -718,7 +718,7 @@ void checkPreviousPackets() {
 
     Serial.println(F("null packet"));
     LoRa.sleep(); //forse questo sleep è da togliere, rallenta molto
-    send_mode = 0;
+    op_mode = 0;
     return;
   }
 
@@ -729,12 +729,12 @@ void checkPreviousPackets() {
 
     // il contatore del fwdBuffer torna sempre a 0 dopo il reset
     LoRa.sleep();
-    send_mode = 0;
+    op_mode = 0;
     return;
   } else {
     // se il messaggio ricevuto è nel buffer
-    //  allora torno alla receiver mode send_mode = 0;
-    // altrimenti copia il messaggio sia nel buffer che nel fwdBuffer poi send_mode = 0;
+    //  allora torno alla receiver mode op_mode = 0;
+    // altrimenti copia il messaggio sia nel buffer che nel fwdBuffer poi op_mode = 0;
     // il contatore del fwdBuffer torna sempre a 0 dopo il reset quindi buffer e fwdBuffer hanno indici diversi
 
     int equal1 = 0, equal2 = 0, equal3 = 0;
@@ -766,7 +766,7 @@ void checkPreviousPackets() {
       }
 
       LoRa.sleep();
-      send_mode = 0;
+      op_mode = 0;
       return;
 
     } else { // pacchetto non ancora inoltrato e lo aggiungo ai buffers
@@ -777,7 +777,7 @@ void checkPreviousPackets() {
       copyMessageintoBuffers();
 
       LoRa.sleep();
-      send_mode = 0;
+      op_mode = 0;
       return;
     }
   }
@@ -910,7 +910,7 @@ void forwardPackets() {
       Serial.println(F("wait 10s"));
     }
     //Aspetto per lo sleep
-    send_mode = 4;
+    op_mode = 4;
     delay(sleepTime);
 
     // aggiorno il tempo di inizio ricezione
@@ -924,7 +924,7 @@ void forwardPackets() {
     canSendLoRaWAN = 0;
     //Passo in receive mode
     LoRa.sleep();
-    send_mode = 0;
+    op_mode = 0;
     return;
   }
 }

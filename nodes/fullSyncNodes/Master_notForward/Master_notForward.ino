@@ -29,7 +29,7 @@ unsigned long currentMillisRX;
 
 int sleepTime, RTT, TX_interval, RX_interval;
 long lastSendTime = 0;
-int send_mode = -1;
+int op_mode = -1;
 int initOnStartup = 0;
 int canSendLoRaWAN = 0;
 int counter = 0;
@@ -261,7 +261,7 @@ void initSync() {
 
 
         // passo in modalità ricezione
-        send_mode = 0;
+        op_mode = 0;
         if (debug < 0) {
           Serial.println(F("swap in rcv"));
         }
@@ -284,7 +284,7 @@ void initSync() {
       if (currentTime >= startTime + RTT) {
 
         // passo in modalità invio
-        send_mode = 2;
+        op_mode = 2;
         if (debug < 0) {
           Serial.println(F("swap in send"));
         }
@@ -410,12 +410,12 @@ void onReceiveSyncforMaster(int pSize) {
 
 void loop() {
 
-  if (send_mode == -1) {
+  if (op_mode == -1) {
     // wait for synchronization
     initSync();
-  } else if (send_mode == 0) {
+  } else if (op_mode == 0) {
     receivePackets();
-  } else if (send_mode == 2) {
+  } else if (op_mode == 2) {
     forwardPackets();
   } else {
     // nothing
@@ -442,12 +442,12 @@ void receivePackets() {
       Serial.println(F("wait 10s"));
     }
 
-    send_mode = 4;
+    op_mode = 4;
     delay(sleepTime);
 
     TXmode_startTime = millis();
 
-    send_mode = 2;
+    op_mode = 2;
     if (debug < 0) {
       Serial.println(F("swap to send"));
     }
@@ -495,7 +495,7 @@ void forwardPackets() {
       Serial.println(F("wait 10s"));
     }
     //Aspetto per lo sleep
-    send_mode = 4;
+    op_mode = 4;
     delay(sleepTime);
 
     // aggiorno il tempo di inizio ricezione
@@ -507,7 +507,7 @@ void forwardPackets() {
     canSendLoRaWAN = 0;
     //Passo in receive mode
     //LoRa.sleep();
-    send_mode = 0;
+    op_mode = 0;
     return;
   }
 }

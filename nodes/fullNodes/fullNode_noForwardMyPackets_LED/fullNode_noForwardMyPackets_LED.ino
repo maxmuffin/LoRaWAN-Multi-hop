@@ -60,7 +60,7 @@ static uint8_t packet[256]; // current received packet
 static uint8_t message[256]; //used for send message
 static uint8_t previous_packet[256];
 
-static int send_mode = 0; /* define mode default receive mode */
+static int op_mode = 0; /* define mode default receive mode */
 
 //Set Debug = 1 to enable Output;
 const int debug = 0;
@@ -258,9 +258,9 @@ void loop() {
 
   if (currentTime - startTime < interval)  //test whether the period has elapsed
   {
-    if (!send_mode) {
+    if (!op_mode) {
       receivePacket();
-    } else if (send_mode == 1) {
+    } else if (op_mode == 1) {
       checkPreviousPacket();
     } else {
       forwardPacket(); // SEND Packet
@@ -446,7 +446,7 @@ void receivePacket() {
       char devaddr[12] = {'\0'};
 
       sprintf(devaddr, "%x%x%x%x", message[4], message[3], message[2], message[1]);
-      
+
       if (strlen(devaddr) > 8) {
         for (i = 0; i < strlen(devaddr) - 2; i++) {
           devaddr[i] = devaddr[i + 2];
@@ -479,7 +479,7 @@ void receivePacket() {
 
         // Red
         RGB_color(255, 0, 0);
-        send_mode = 0;
+        op_mode = 0;
 
 
       } else { //non è inviato da me
@@ -488,10 +488,10 @@ void receivePacket() {
         receivedCount++;
 
         if (receivedCount > 1) {
-          send_mode = 1;
+          op_mode = 1;
         } else {
           // skip to mode 2 (SEND received packet)
-          send_mode = 2;
+          op_mode = 2;
         }
 
 
@@ -568,7 +568,7 @@ void checkPreviousPacket() {
       checkFrequency();
     }
 
-    send_mode = 0;
+    op_mode = 0;
 
     /*if ( debug > 0) {
       Serial.println(F("Waiting for new incoming packets using: "));
@@ -580,7 +580,7 @@ void checkPreviousPacket() {
       Serial.println(F("Pacchetto diverso dai precedenti"));
       }*/
     //Serial.println(F("Diverso"));
-    send_mode = 2;
+    op_mode = 2;
   }
 
 }
@@ -639,7 +639,7 @@ void forwardPacket() {
       }*/
     copyMessage();
 
-    send_mode = 0; //back to receive mode
+    op_mode = 0; //back to receive mode
 
     /*if (debug > 0) {
       printChangedMode();
@@ -659,9 +659,9 @@ void RGB_color(int red_light_value, int green_light_value, int blue_light_value)
 /*
   // Print status of operation mode of relay
   void printChangedMode() {
-  if (send_mode == 2) {
+  if (op_mode == 2) {
     //Serial.println(F("Sending received packet"));
-  } else if (send_mode == 0) {
+  } else if (op_mode == 0) {
     //Serial.println(F("Waiting for new incoming packets using: "));
     show_config();
   } else {
